@@ -1,0 +1,3 @@
+Mapping {"matches": Sequence [Mapping {"trigger": String("hmnold"), "replace": String("Hi, my name is Ricky and I will do my best to help you today. If I understand correctly,$|$ . Is that correct?")}
+
+Sequence [Mapping {"trigger": String("hmnold"), "replace": String("Hi, my name is Ricky and I will do my best to help you today. If I understand correctly,$|$ . Is that correct?")}
