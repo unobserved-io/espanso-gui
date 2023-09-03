@@ -58,7 +58,7 @@ impl State {
                 espanso_loc: String::new(),
                 selected_nav: "eg-Settings".to_string(),
                 selected_file: PathBuf::new(),
-                original_file: String::new(),
+                original_file: Triggers::default(),
                 match_files: Vec::new(),
             }
         }
@@ -121,7 +121,7 @@ impl Application for EGUI {
                                     espanso_loc + "/match/" + &state.selected_nav + ".yml",
                                 )
                             };
-                            state.original_file = read_file_to_string(state.selected_file.clone());
+                            state.original_file = read_to_triggers(state.selected_file.clone());
                         }
                     }
                     Command::none()
@@ -200,7 +200,7 @@ impl Application for EGUI {
                 espanso_loc,
                 selected_nav,
                 selected_file,
-                original_file: file_string,
+                original_file,
                 match_files,
                 ..
             }) => {
@@ -252,55 +252,43 @@ impl Application for EGUI {
                 let mut all_trigger_replace_rows: Column<'_, Message, Renderer> =
                     Column::new().spacing(8).padding([0, 0, 0, 10]);
                 if !selected_nav.is_empty() && selected_nav != "eg-Settings" {
-                    let yaml_data = yaml_from_string(file_string.clone());
-                    let yaml_data = yaml_data.as_mapping();
-                    if yaml_data.is_some() {
-                        let yaml_data = yaml_data.unwrap();
-                        if let Some(trigger_replace_list) = yaml_data["matches"].as_sequence() {
-                            all_trigger_replace_rows = all_trigger_replace_rows.push(row![
-                                button("+ Add").on_press(Message::AddPairPressed),
-                                text(format!("Items: {}", trigger_replace_list.len())),
-                                Space::new(Length::Fill, 0),
-                                button("Undo").on_press(Message::UndoPressed),
-                                button("Save").on_press(Message::SaveFilePressed),
-                            ]);
-                            for trigger_replace in trigger_replace_list {
-                                let trigger_str = trigger_replace["trigger"].as_str();
-                                let replace_str = trigger_replace["replace"].as_str();
-                                if trigger_str.is_some() && replace_str.is_some() {
-                                    let trigger_str = trigger_str.unwrap();
-                                    let replace_str = replace_str.unwrap();
-                                    let trigger_replace_container: Container<
-                                        '_,
-                                        Message,
-                                        Renderer,
-                                    > = Container::new(
-                                        row![column![
-                                            row![
-                                                text("Trigger:").size(20).width(90),
-                                                text_input(trigger_str, trigger_str)
-                                                    .on_input(Message::YamlInputChanged)
-                                                    .size(20)
-                                            ],
-                                            row![
-                                                text("Replace:").size(20).width(75),
-                                                text_input(replace_str, replace_str)
-                                                    .on_input(Message::YamlInputChanged)
-                                                    .size(20)
-                                            ]
-                                            .spacing(10)
-                                            .align_items(Alignment::Center)
-                                        ]
-                                        .spacing(8)]
-                                        .spacing(10)
-                                        .padding(20),
-                                    )
-                                    .style(style::gray_background);
-                                    all_trigger_replace_rows =
-                                        all_trigger_replace_rows.push(trigger_replace_container);
-                                }
-                            }
-                        }
+                    // let yaml_data = original_file.clone();
+                    all_trigger_replace_rows = all_trigger_replace_rows.push(row![
+                        button("+ Add").on_press(Message::AddPairPressed),
+                        text(format!("Items: {}", original_file.matches.len())),
+                        Space::new(Length::Fill, 0),
+                        button("Undo").on_press(Message::UndoPressed),
+                        button("Save").on_press(Message::SaveFilePressed),
+                    ]);
+
+                    for trigger_replace in original_file.matches.clone() {
+                        let trigger_str = trigger_replace["trigger"].clone();
+                        let replace_str = trigger_replace["replace"].clone();
+                        let trigger_replace_container: Container<'_, Message, Renderer> =
+                            Container::new(
+                                row![column![
+                                    row![
+                                        text("Trigger:").size(20).width(90),
+                                        text_input(&trigger_str, &trigger_str)
+                                            .on_input(Message::YamlInputChanged)
+                                            .size(20)
+                                    ],
+                                    row![
+                                        text("Replace:").size(20).width(75),
+                                        text_input(&replace_str, &replace_str)
+                                            .on_input(Message::YamlInputChanged)
+                                            .size(20)
+                                    ]
+                                    .spacing(10)
+                                    .align_items(Alignment::Center)
+                                ]
+                                .spacing(8)]
+                                .spacing(10)
+                                .padding(20),
+                            )
+                            .style(style::gray_background);
+                        all_trigger_replace_rows =
+                            all_trigger_replace_rows.push(trigger_replace_container);
                     }
                 }
 
@@ -333,19 +321,9 @@ fn nav_button<'a>(text: &'a str, nav_to: &'a str) -> Button<'a, Message> {
     button(text).on_press(Message::NavigateTo(nav_to.to_string()))
 }
 
-fn read_to_triggers(file_path: PathBuf) {
+fn read_to_triggers(file_path: PathBuf) -> Triggers {
     let f = std::fs::File::open(file_path).expect("Could not open file.");
-    let scrape_triggers: Triggers = serde_yaml::from_reader(f).expect("Could not read values.");
-    println!("{:?}", scrape_triggers);
-}
-
-fn read_file_to_string(file_path: PathBuf) -> String {
-    read_to_triggers(file_path.clone());
-    std::fs::read_to_string(file_path).expect("Failed to read file")
-}
-
-fn yaml_from_string(file_contents: String) -> Value {
-    serde_yaml::from_str(&file_contents).expect("Failed to parse YAML")
+    serde_yaml::from_reader(f).expect("Could not read values.")
 }
 
 fn get_default_espanso_dir() -> String {

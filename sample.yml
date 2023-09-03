@@ -1,3 +1,1 @@
-Mapping {"matches": Sequence [Mapping {"trigger": String("hmnold"), "replace": String("Hi, my name is Ricky and I will do my best to help you today. If I understand correctly,$|$ . Is that correct?")}
-
-Sequence [Mapping {"trigger": String("hmnold"), "replace": String("Hi, my name is Ricky and I will do my best to help you today. If I understand correctly,$|$ . Is that correct?")}
+Triggers { matches: [{"replace": "<a href=\"$|$\" title=\"\">", "trigger": ":href"}, {"trigger": ":/href", "replace": "<a href=\"\" title=\"\">$|$</a>"}, {"trigger": ":img", "replace": "<img src=\"$|$\" alt=\"\" />"}, {"trigger": ":/li", "replace": "<li>$|$</li>"}, {"trigger": ":/b", "replace": "<b>$|$</b>"}, {"trigger": ":/p", "replace": "<p>$|$</p>"}, {"trigger": ":/ul", "replace": "<ul>$|$</ul>"}, {"trigger": ":--", "replace": "–"}] }
