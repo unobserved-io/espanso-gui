@@ -47,7 +47,7 @@ impl State {
                 espanso_loc: get_default_espanso_dir(),
                 selected_nav: "eg-Settings".to_string(),
                 selected_file: PathBuf::new(),
-                original_file: Triggers::new(),
+                original_file: Triggers::default(),
                 match_files: {
                     let default_path = PathBuf::from(get_default_espanso_dir());
                     get_all_match_file_stems(default_path.join("match"))
