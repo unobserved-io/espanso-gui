@@ -5,12 +5,14 @@ use home;
 use iced::theme::Theme;
 use iced::widget::{
     button, column, container, row, text, text_input, Button, Column, Container, Scrollable, Space,
+    TextInput,
 };
 use iced::{
     alignment, window, Alignment, Application, Command, Element, Length, Renderer, Settings,
 };
 use rfd::FileDialog;
 use serde_yaml::{self, Value};
+use std::cell::RefCell;
 use std::path::PathBuf;
 use triggers::Triggers;
 use walkdir::WalkDir;
@@ -37,6 +39,7 @@ struct State {
     selected_nav: String,
     selected_file: PathBuf,
     original_file: Triggers,
+    edited_file: Triggers,
     match_files: Vec<String>,
 }
 
@@ -48,6 +51,7 @@ impl State {
                 selected_nav: "eg-Settings".to_string(),
                 selected_file: PathBuf::new(),
                 original_file: Triggers::default(),
+                edited_file: Triggers::default(),
                 match_files: {
                     let default_path = PathBuf::from(get_default_espanso_dir());
                     get_all_match_file_stems(default_path.join("match"))
@@ -59,6 +63,7 @@ impl State {
                 selected_nav: "eg-Settings".to_string(),
                 selected_file: PathBuf::new(),
                 original_file: Triggers::default(),
+                edited_file: Triggers::default(),
                 match_files: Vec::new(),
             }
         }
@@ -69,7 +74,7 @@ impl State {
 enum Message {
     AddPairPressed,
     InputChanged(String),
-    YamlInputChanged(String),
+    YamlInputChanged(String, usize, String),
     BrowsePressed,
     SettingsSavePressed,
     NavigateTo(String),
@@ -100,7 +105,15 @@ impl Application for EGUI {
                     state.espanso_loc = value;
                     Command::none()
                 }
-                Message::YamlInputChanged(value) => Command::none(),
+                Message::YamlInputChanged(new_str, i, trig_repl) => {
+                    state
+                        .edited_file
+                        .matches
+                        .get_mut(i)
+                        .unwrap()
+                        .insert(trig_repl, new_str);
+                    Command::none()
+                }
                 Message::NavigateTo(value) => {
                     state.selected_nav = value.clone();
                     let espanso_loc = state.espanso_loc.clone();
@@ -122,6 +135,7 @@ impl Application for EGUI {
                                 )
                             };
                             state.original_file = read_to_triggers(state.selected_file.clone());
+                            state.edited_file = state.original_file.clone();
                         }
                     }
                     Command::none()
@@ -163,7 +177,10 @@ impl Application for EGUI {
                     Command::none()
                 }
                 Message::UndoPressed => Command::none(),
-                Message::SaveFilePressed => Command::none(),
+                Message::SaveFilePressed => {
+                    // TODO
+                    Command::none()
+                }
             },
         }
     }
@@ -201,6 +218,7 @@ impl Application for EGUI {
                 selected_nav,
                 selected_file,
                 original_file,
+                edited_file,
                 match_files,
                 ..
             }) => {
@@ -252,32 +270,48 @@ impl Application for EGUI {
                 let mut all_trigger_replace_rows: Column<'_, Message, Renderer> =
                     Column::new().spacing(8).padding([0, 0, 0, 10]);
                 if !selected_nav.is_empty() && selected_nav != "eg-Settings" {
-                    // let yaml_data = original_file.clone();
-                    all_trigger_replace_rows = all_trigger_replace_rows.push(row![
-                        button("+ Add").on_press(Message::AddPairPressed),
-                        text(format!("Items: {}", original_file.matches.len())),
-                        Space::new(Length::Fill, 0),
-                        button("Undo").on_press(Message::UndoPressed),
-                        button("Save").on_press(Message::SaveFilePressed),
-                    ]);
+                    all_trigger_replace_rows = all_trigger_replace_rows.push(
+                        row![
+                            button("+ Add").on_press(Message::AddPairPressed),
+                            text(format!("Items: {}", original_file.matches.len())),
+                            Space::new(Length::Fill, 0),
+                            button("Undo").on_press(Message::UndoPressed),
+                            button("Save").on_press_maybe(
+                                match original_file.matches == edited_file.matches {
+                                    true => None,
+                                    false => Some(Message::SaveFilePressed),
+                                }
+                            ),
+                        ]
+                        .align_items(Alignment::Center)
+                        .spacing(10),
+                    );
 
-                    for trigger_replace in original_file.matches.clone() {
-                        let trigger_str = trigger_replace["trigger"].clone();
-                        let replace_str = trigger_replace["replace"].clone();
-                        let trigger_replace_container: Container<'_, Message, Renderer> =
+                    for i in 0..edited_file.matches.len() {
+                        all_trigger_replace_rows = all_trigger_replace_rows.push(
                             Container::new(
                                 row![column![
                                     row![
                                         text("Trigger:").size(20).width(90),
-                                        text_input(&trigger_str, &trigger_str)
-                                            .on_input(Message::YamlInputChanged)
-                                            .size(20)
+                                        text_input(
+                                            &edited_file.matches[i]["trigger"],
+                                            &edited_file.matches[i]["trigger"]
+                                        )
+                                        .on_input(move |s| {
+                                            Message::YamlInputChanged(s, i, "trigger".to_string())
+                                        })
+                                        .size(20)
                                     ],
                                     row![
                                         text("Replace:").size(20).width(75),
-                                        text_input(&replace_str, &replace_str)
-                                            .on_input(Message::YamlInputChanged)
-                                            .size(20)
+                                        text_input(
+                                            &edited_file.matches[i]["replace"],
+                                            &edited_file.matches[i]["replace"]
+                                        )
+                                        .on_input(move |s| {
+                                            Message::YamlInputChanged(s, i, "replace".to_string())
+                                        })
+                                        .size(20)
                                     ]
                                     .spacing(10)
                                     .align_items(Alignment::Center)
@@ -286,9 +320,8 @@ impl Application for EGUI {
                                 .spacing(10)
                                 .padding(20),
                             )
-                            .style(style::gray_background);
-                        all_trigger_replace_rows =
-                            all_trigger_replace_rows.push(trigger_replace_container);
+                            .style(style::gray_background),
+                        );
                     }
                 }
 
