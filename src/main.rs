@@ -15,6 +15,7 @@ use rfd::FileDialog;
 use serde_yaml::{self, Value};
 use std::cell::RefCell;
 use std::path::PathBuf;
+use std::process::Command as p_cmd;
 use walkdir::WalkDir;
 
 pub fn main() -> iced::Result {
@@ -384,6 +385,12 @@ fn get_default_espanso_dir() -> String {
         let default_path = config_dir.join("espanso");
         default_loc = default_path.display().to_string();
     }
+
+    let espanso_reported_path = p_cmd::new("espanso")
+        .arg("path")
+        .output()
+        .expect("failed to get path from espanso");
+    println!("{:?}", espanso_reported_path.stdout);
 
     // TODO: Return to normal after testing
     // default_loc
