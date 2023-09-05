@@ -1,6 +1,7 @@
-mod triggers;
+mod espanso_yaml;
 
 use dirs::config_dir;
+use espanso_yaml::EspansoYaml;
 use home;
 use iced::theme::Theme;
 use iced::widget::{
@@ -14,7 +15,6 @@ use rfd::FileDialog;
 use serde_yaml::{self, Value};
 use std::cell::RefCell;
 use std::path::PathBuf;
-use triggers::Triggers;
 use walkdir::WalkDir;
 
 pub fn main() -> iced::Result {
@@ -38,8 +38,8 @@ struct State {
     espanso_loc: String,
     selected_nav: String,
     selected_file: PathBuf,
-    original_file: Triggers,
-    edited_file: Triggers,
+    original_file: EspansoYaml,
+    edited_file: EspansoYaml,
     match_files: Vec<String>,
 }
 
@@ -50,8 +50,8 @@ impl State {
                 espanso_loc: get_default_espanso_dir(),
                 selected_nav: "eg-Settings".to_string(),
                 selected_file: PathBuf::new(),
-                original_file: Triggers::default(),
-                edited_file: Triggers::default(),
+                original_file: EspansoYaml::default(),
+                edited_file: EspansoYaml::default(),
                 match_files: {
                     let default_path = PathBuf::from(get_default_espanso_dir());
                     get_all_match_file_stems(default_path.join("match"))
@@ -62,8 +62,8 @@ impl State {
                 espanso_loc: String::new(),
                 selected_nav: "eg-Settings".to_string(),
                 selected_file: PathBuf::new(),
-                original_file: Triggers::default(),
-                edited_file: Triggers::default(),
+                original_file: EspansoYaml::default(),
+                edited_file: EspansoYaml::default(),
                 match_files: Vec::new(),
             }
         }
@@ -78,7 +78,7 @@ enum Message {
     BrowsePressed,
     SettingsSavePressed,
     NavigateTo(String),
-    UndoPressed,
+    ResetPressed,
     SaveFilePressed,
 }
 
@@ -106,12 +106,11 @@ impl Application for EGUI {
                     Command::none()
                 }
                 Message::YamlInputChanged(new_str, i, trig_repl) => {
-                    state
-                        .edited_file
-                        .matches
-                        .get_mut(i)
-                        .unwrap()
-                        .insert(trig_repl, new_str);
+                    if trig_repl == "trigger" {
+                        state.edited_file.matches.get_mut(i).unwrap().trigger = new_str;
+                    } else {
+                        state.edited_file.matches.get_mut(i).unwrap().replace = new_str;
+                    }
                     Command::none()
                 }
                 Message::NavigateTo(value) => {
@@ -176,9 +175,10 @@ impl Application for EGUI {
 
                     Command::none()
                 }
-                Message::UndoPressed => Command::none(),
+                Message::ResetPressed => Command::none(),
                 Message::SaveFilePressed => {
-                    // TODO
+                    write_from_triggers(state.selected_file.clone(), state.edited_file.clone());
+                    state.original_file = state.edited_file.clone();
                     Command::none()
                 }
             },
@@ -275,7 +275,7 @@ impl Application for EGUI {
                             button("+ Add").on_press(Message::AddPairPressed),
                             text(format!("Items: {}", original_file.matches.len())),
                             Space::new(Length::Fill, 0),
-                            button("Undo").on_press(Message::UndoPressed),
+                            button("Reset").on_press(Message::ResetPressed),
                             button("Save").on_press_maybe(
                                 match original_file.matches == edited_file.matches {
                                     true => None,
@@ -294,8 +294,8 @@ impl Application for EGUI {
                                     row![
                                         text("Trigger:").size(20).width(90),
                                         text_input(
-                                            &edited_file.matches[i]["trigger"],
-                                            &edited_file.matches[i]["trigger"]
+                                            &edited_file.matches[i].trigger,
+                                            &edited_file.matches[i].trigger
                                         )
                                         .on_input(move |s| {
                                             Message::YamlInputChanged(s, i, "trigger".to_string())
@@ -305,8 +305,8 @@ impl Application for EGUI {
                                     row![
                                         text("Replace:").size(20).width(75),
                                         text_input(
-                                            &edited_file.matches[i]["replace"],
-                                            &edited_file.matches[i]["replace"]
+                                            &edited_file.matches[i].replace,
+                                            &edited_file.matches[i].replace
                                         )
                                         .on_input(move |s| {
                                             Message::YamlInputChanged(s, i, "replace".to_string())
@@ -354,9 +354,20 @@ fn nav_button<'a>(text: &'a str, nav_to: &'a str) -> Button<'a, Message> {
     button(text).on_press(Message::NavigateTo(nav_to.to_string()))
 }
 
-fn read_to_triggers(file_path: PathBuf) -> Triggers {
+fn read_to_triggers(file_path: PathBuf) -> EspansoYaml {
     let f = std::fs::File::open(file_path).expect("Could not open file.");
     serde_yaml::from_reader(f).expect("Could not read values.")
+}
+
+fn write_from_triggers(file_path: PathBuf, edited_file: EspansoYaml) {
+    let f = std::fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(file_path)
+        .expect("Couldn't open file");
+    serde_yaml::to_writer(f, &edited_file).unwrap();
+    // println!("{:?}", edited_file);
 }
 
 fn get_default_espanso_dir() -> String {
@@ -366,7 +377,9 @@ fn get_default_espanso_dir() -> String {
         default_loc = default_path.display().to_string();
     }
 
-    default_loc
+    // TODO: Return to normal after testing
+    // default_loc
+    "/Users/ricky/Downloads/espanso".to_string()
 }
 
 fn valid_espanso_dir(selected_dir: String) -> bool {
