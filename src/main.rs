@@ -15,6 +15,7 @@ use rfd::FileDialog;
 use serde_yaml::{self, Value};
 use std::cell::RefCell;
 use std::path::PathBuf;
+use std::io::{self, Write};
 use std::process::Command as p_cmd;
 use walkdir::WalkDir;
 
@@ -381,16 +382,27 @@ fn write_from_triggers(file_path: PathBuf, edited_file: EspansoYaml) {
 
 fn get_default_espanso_dir() -> String {
     let mut default_loc = String::new();
+    
+    // Get result of 'espanso path' command if possible
+    let espanso_path_cmd = p_cmd::new("espanso")
+        .arg("path")
+        .output()
+        .expect("failed to get path from espanso");
+    let espanso_path_cmd_output = String::from_utf8(espanso_path_cmd.stdout).expect("Couldn't get espanso path");
+    let espanso_path_array: Vec<&str> = espanso_path_cmd_output.split("\n").collect();
+    if !espanso_path_array.is_empty() {
+        if !espanso_path_array[0].is_empty() {
+            if espanso_path_array[0].starts_with("Config:") {
+                return espanso_path_array[0][8..].to_string();
+            }
+        }
+    }
+    
+    // If that was unsuccessful, get the default path
     if let Some(config_dir) = config_dir() {
         let default_path = config_dir.join("espanso");
         default_loc = default_path.display().to_string();
     }
-
-    let espanso_reported_path = p_cmd::new("espanso")
-        .arg("path")
-        .output()
-        .expect("failed to get path from espanso");
-    println!("{:?}", espanso_reported_path.stdout);
 
     // TODO: Return to normal after testing
     // default_loc
