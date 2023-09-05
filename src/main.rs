@@ -1,7 +1,7 @@
 mod espanso_yaml;
 
 use dirs::config_dir;
-use espanso_yaml::EspansoYaml;
+use espanso_yaml::{EspansoYaml, YamlPairs};
 use home;
 use iced::theme::Theme;
 use iced::widget::{
@@ -102,7 +102,10 @@ impl Application for EGUI {
         match self {
             EGUI::Loading => Command::none(),
             EGUI::Loaded(state) => match message {
-                Message::AddPairPressed => Command::none(),
+                Message::AddPairPressed => {
+                    state.edited_file.matches.push(YamlPairs::default());
+                    Command::none()
+                }
                 Message::InputChanged(value) => {
                     state.espanso_loc = value;
                     Command::none()
@@ -381,6 +384,8 @@ fn write_from_triggers(file_path: PathBuf, edited_file: EspansoYaml) {
 }
 
 fn get_default_espanso_dir() -> String {
+    // TODO: Return to normal after testing
+    return "/Users/ricky/Downloads/espanso".to_string();
     // Get result of 'espanso path' command if possible
     let espanso_path_cmd = p_cmd::new("espanso")
         .arg("path")
@@ -403,9 +408,7 @@ fn get_default_espanso_dir() -> String {
         return default_path.display().to_string();
     }
 
-    // TODO: Return to normal after testing
-    // String::new()
-    "/Users/ricky/Downloads/espanso".to_string()
+    String::new()
 }
 
 fn valid_espanso_dir(selected_dir: String) -> bool {
