@@ -175,7 +175,10 @@ impl Application for EGUI {
 
                     Command::none()
                 }
-                Message::ResetPressed => Command::none(),
+                Message::ResetPressed => {
+                    state.edited_file = state.original_file.clone();
+                    Command::none()
+                }
                 Message::SaveFilePressed => {
                     write_from_triggers(state.selected_file.clone(), state.edited_file.clone());
                     state.original_file = state.edited_file.clone();
@@ -275,7 +278,12 @@ impl Application for EGUI {
                             button("+ Add").on_press(Message::AddPairPressed),
                             text(format!("Items: {}", original_file.matches.len())),
                             Space::new(Length::Fill, 0),
-                            button("Reset").on_press(Message::ResetPressed),
+                            button("Reset").on_press_maybe(
+                                match original_file.matches == edited_file.matches {
+                                    true => None,
+                                    false => Some(Message::ResetPressed),
+                                }
+                            ),
                             button("Save").on_press_maybe(
                                 match original_file.matches == edited_file.matches {
                                     true => None,
