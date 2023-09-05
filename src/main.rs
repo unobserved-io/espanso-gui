@@ -5,19 +5,21 @@ use espanso_yaml::{EspansoYaml, YamlPairs};
 use home;
 use iced::theme::Theme;
 use iced::widget::{
-    button, column, container, row, text, text_input, Button, Column, Container, Scrollable, Space,
-    TextInput,
+    button, column, container, row, scrollable, text, text_input, Button, Column, Container,
+    Scrollable, Space, TextInput,
 };
 use iced::{
     alignment, window, Alignment, Application, Command, Element, Length, Renderer, Settings,
 };
+use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use serde_yaml::{self, Value};
-use std::cell::RefCell;
 use std::io::{self, Write};
 use std::path::PathBuf;
 use std::process::Command as p_cmd;
 use walkdir::WalkDir;
+
+static SCROLLABLE_ID: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);
 
 pub fn main() -> iced::Result {
     EGUI::run(Settings {
@@ -43,6 +45,7 @@ struct State {
     original_file: EspansoYaml,
     edited_file: EspansoYaml,
     match_files: Vec<String>,
+    // scrollable_offset: scrollable::RelativeOffset,
 }
 
 impl State {
@@ -58,6 +61,7 @@ impl State {
                     let default_path = PathBuf::from(get_default_espanso_dir());
                     get_all_match_file_stems(default_path.join("match"))
                 },
+                // scrollable_offset: scrollable::RelativeOffset::START,
             }
         } else {
             State {
@@ -67,6 +71,7 @@ impl State {
                 original_file: EspansoYaml::default(),
                 edited_file: EspansoYaml::default(),
                 match_files: Vec::new(),
+                // scrollable_offset: scrollable::RelativeOffset::START,
             }
         }
     }
@@ -104,7 +109,7 @@ impl Application for EGUI {
             EGUI::Loaded(state) => match message {
                 Message::AddPairPressed => {
                     state.edited_file.matches.push(YamlPairs::default());
-                    Command::none()
+                    scrollable::snap_to(SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END)
                 }
                 Message::InputChanged(value) => {
                     state.espanso_loc = value;
@@ -338,11 +343,17 @@ impl Application for EGUI {
                     }
                 }
 
-                let open_file_col = column![Scrollable::new(
-                    all_trigger_replace_rows.padding([20, 20, 20, 40])
-                )]
-                .width(Length::Fill)
-                .align_items(Alignment::Start);
+                // let mut scrollable = Scrollable::new(scrollable_state);
+                // scrollable.push(all_trigger_replace_rows.padding([20, 20, 20, 40]));
+                // Scrollable::new(all_trigger_replace_rows.padding([20, 20, 20, 40]));
+                // scrollable.scroll_to(scrollable::Scroll::End);
+                let open_file_col =
+                    column![
+                        Scrollable::new(all_trigger_replace_rows.padding([20, 20, 20, 40]))
+                            .id(SCROLLABLE_ID.clone())
+                    ]
+                    .width(Length::Fill)
+                    .align_items(Alignment::Start);
 
                 let main_row = row![
                     nav_col,

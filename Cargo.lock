@@ -604,6 +604,7 @@ dependencies = [
  "dirs",
  "home",
  "iced",
+ "once_cell",
  "rfd",
  "serde",
  "serde_yaml",
