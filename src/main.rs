@@ -6,15 +6,15 @@ use home;
 use iced::theme::Theme;
 use iced::widget::{
     button, column, container, row, scrollable, text, text_input, Button, Column, Container,
-    Scrollable, Space, TextInput,
+    Scrollable, Space,
 };
 use iced::{
-    alignment, window, Alignment, Application, Command, Element, Length, Renderer, Settings,
+    alignment, font, window, Alignment, Application, Command, Element, Length, Renderer, Settings,
 };
+use iced_aw::{modal, Card};
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
-use serde_yaml::{self, Value};
-use std::io::{self, Write};
+use serde_yaml::{from_reader, to_writer};
 use std::path::PathBuf;
 use std::process::Command as p_cmd;
 use walkdir::WalkDir;
@@ -45,7 +45,9 @@ struct State {
     original_file: EspansoYaml,
     edited_file: EspansoYaml,
     match_files: Vec<String>,
-    // scrollable_offset: scrollable::RelativeOffset,
+    show_modal: bool,
+    modal_title: String,
+    modal_message: String,
 }
 
 impl State {
@@ -61,7 +63,9 @@ impl State {
                     let default_path = PathBuf::from(get_default_espanso_dir());
                     get_all_match_file_stems(default_path.join("match"))
                 },
-                // scrollable_offset: scrollable::RelativeOffset::START,
+                show_modal: false,
+                modal_title: String::new(),
+                modal_message: String::new(),
             }
         } else {
             State {
@@ -71,7 +75,9 @@ impl State {
                 original_file: EspansoYaml::default(),
                 edited_file: EspansoYaml::default(),
                 match_files: Vec::new(),
-                // scrollable_offset: scrollable::RelativeOffset::START,
+                show_modal: false,
+                modal_title: String::new(),
+                modal_message: String::new(),
             }
         }
     }
@@ -87,6 +93,16 @@ enum Message {
     NavigateTo(String),
     ResetPressed,
     SaveFilePressed,
+    ModalCancelPressed,
+    ModalOkPressed,
+    CloseModal,
+    ShowModal(String),
+    Loaded(Result<(), String>),
+    FontLoaded(Result<(), font::Error>),
+}
+
+async fn load() -> Result<(), String> {
+    Ok(())
 }
 
 impl Application for EGUI {
@@ -96,7 +112,14 @@ impl Application for EGUI {
     type Theme = Theme;
 
     fn new(_: Self::Flags) -> (Self, Command<Self::Message>) {
-        (EGUI::Loaded(State::new()), Command::none())
+        // (EGUI::Loaded(State::new()), Command::none())
+        (
+            EGUI::Loading,
+            Command::batch(vec![
+                font::load(iced_aw::graphics::icons::ICON_FONT_BYTES).map(Message::FontLoaded),
+                Command::perform(load(), Message::Loaded),
+            ]),
+        )
     }
 
     fn title(&self) -> String {
@@ -105,15 +128,33 @@ impl Application for EGUI {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match self {
-            EGUI::Loading => Command::none(),
+            EGUI::Loading => {
+                if let Message::Loaded(_) = message {
+                    *self = EGUI::Loaded(State::new())
+                }
+            }
             EGUI::Loaded(state) => match message {
+                Message::ShowModal(value) => {
+                    state.show_modal = true;
+                }
+                Message::ModalOkPressed => {
+                    state.show_modal = false;
+                }
+                Message::CloseModal => {
+                    state.show_modal = false;
+                }
+                Message::ModalCancelPressed => {
+                    state.show_modal = false;
+                }
                 Message::AddPairPressed => {
                     state.edited_file.matches.push(YamlPairs::default());
-                    scrollable::snap_to(SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END)
+                    return scrollable::snap_to(
+                        SCROLLABLE_ID.clone(),
+                        scrollable::RelativeOffset::END,
+                    );
                 }
                 Message::InputChanged(value) => {
                     state.espanso_loc = value;
-                    Command::none()
                 }
                 Message::YamlInputChanged(new_str, i, trig_repl) => {
                     if trig_repl == "trigger" {
@@ -121,7 +162,6 @@ impl Application for EGUI {
                     } else {
                         state.edited_file.matches.get_mut(i).unwrap().replace = new_str;
                     }
-                    Command::none()
                 }
                 Message::NavigateTo(value) => {
                     state.selected_nav = value.clone();
@@ -147,7 +187,6 @@ impl Application for EGUI {
                             state.edited_file = state.original_file.clone();
                         }
                     }
-                    Command::none()
                 }
                 Message::BrowsePressed => {
                     let default_path_mac: PathBuf = ["Library", "Application Support", "espanso"]
@@ -173,8 +212,6 @@ impl Application for EGUI {
                             // TODO: Show invalid directory
                         }
                     }
-
-                    Command::none()
                 }
                 Message::SettingsSavePressed => {
                     if valid_espanso_dir(state.espanso_loc.clone()) {
@@ -182,20 +219,18 @@ impl Application for EGUI {
                             PathBuf::from(state.espanso_loc.clone()).join("match"),
                         )
                     }
-
-                    Command::none()
                 }
                 Message::ResetPressed => {
                     state.edited_file = state.original_file.clone();
-                    Command::none()
                 }
                 Message::SaveFilePressed => {
                     write_from_triggers(state.selected_file.clone(), state.edited_file.clone());
                     state.original_file = state.edited_file.clone();
-                    Command::none()
                 }
+                _ => {}
             },
         }
+        Command::none()
     }
 
     fn view(&self) -> Element<Message> {
@@ -233,8 +268,12 @@ impl Application for EGUI {
                 original_file,
                 edited_file,
                 match_files,
+                show_modal,
+                modal_title,
+                modal_message,
                 ..
             }) => {
+                let unsaved_changes = edited_file.matches != original_file.matches;
                 let mut nav_col = column![text("Files").size(20),]
                     .spacing(12)
                     .padding(20)
@@ -242,11 +281,13 @@ impl Application for EGUI {
                 let mut yml_files_col: Column<'_, Message, Renderer> =
                     Column::new().spacing(8).padding([0, 0, 0, 10]);
                 for yml_file in match_files {
-                    yml_files_col = yml_files_col.push(nav_button(yml_file, yml_file));
+                    yml_files_col =
+                        yml_files_col.push(nav_button(yml_file, yml_file, unsaved_changes));
                 }
                 nav_col = nav_col.push(yml_files_col);
-                nav_col = nav_col.push(nav_button("Preferences", "eg-Preferences"));
-                nav_col = nav_col.push(nav_button("Settings", "eg-Settings"));
+                nav_col =
+                    nav_col.push(nav_button("Preferences", "eg-Preferences", unsaved_changes));
+                nav_col = nav_col.push(nav_button("Settings", "eg-Settings", unsaved_changes));
 
                 let settings_col = column![
                     row![text("Settings").size(25)].padding([0, 0, 20, 0]),
@@ -274,11 +315,6 @@ impl Application for EGUI {
                 .padding([20, 20, 20, 40])
                 .width(Length::Fill)
                 .align_items(Alignment::Start);
-
-                // let preferences_col = column![]
-                //     .padding([20, 20, 20, 40])
-                //     .width(Length::Fill)
-                //     .align_items(Alignment::Start);
 
                 let mut all_trigger_replace_rows: Column<'_, Message, Renderer> =
                     Column::new().spacing(8).padding([0, 0, 0, 10]);
@@ -364,9 +400,38 @@ impl Application for EGUI {
                     }
                 ];
 
-                Container::new(main_row)
+                let underlay = Container::new(main_row)
                     .width(iced::Length::Fill)
-                    .height(iced::Length::Fill)
+                    .height(iced::Length::Fill);
+
+                let overlay: Option<Card<'_, Message, Renderer>> = if show_modal.clone() {
+                    Some(
+                        Card::new(text(modal_title), text(modal_message))
+                            .foot(
+                                row![
+                                    button("Cancel")
+                                        .width(Length::Fill)
+                                        .on_press(Message::ModalCancelPressed),
+                                    button("Ok")
+                                        .width(Length::Fill)
+                                        .on_press(Message::ModalOkPressed),
+                                ]
+                                .spacing(10)
+                                .padding(5)
+                                .width(Length::Fill),
+                            )
+                            .max_width(300.0)
+                            //.width(Length::Shrink)
+                            .on_close(Message::CloseModal),
+                    )
+                } else {
+                    None
+                };
+
+                modal(underlay, overlay)
+                    .backdrop(Message::CloseModal)
+                    .on_esc(Message::CloseModal)
+                    .align_y(alignment::Vertical::Top)
                     .into()
             }
         }
@@ -374,13 +439,19 @@ impl Application for EGUI {
 }
 
 // Could remove 'a here and make nav_to a String
-fn nav_button<'a>(text: &'a str, nav_to: &'a str) -> Button<'a, Message> {
-    button(text).on_press(Message::NavigateTo(nav_to.to_string()))
+fn nav_button<'a>(text: &'a str, nav_to: &'a str, unsaved_changes: bool) -> Button<'a, Message> {
+    button(text).on_press({
+        if unsaved_changes {
+            Message::ShowModal(nav_to.to_string())
+        } else {
+            Message::NavigateTo(nav_to.to_string())
+        }
+    })
 }
 
 fn read_to_triggers(file_path: PathBuf) -> EspansoYaml {
     let f = std::fs::File::open(file_path).expect("Could not open file.");
-    serde_yaml::from_reader(f).expect("Could not read values.")
+    from_reader(f).expect("Could not read values.")
 }
 
 fn write_from_triggers(file_path: PathBuf, edited_file: EspansoYaml) {
@@ -390,7 +461,7 @@ fn write_from_triggers(file_path: PathBuf, edited_file: EspansoYaml) {
         .create(true)
         .open(file_path)
         .expect("Couldn't open file");
-    serde_yaml::to_writer(f, &edited_file).unwrap();
+    to_writer(f, &edited_file).unwrap();
     // println!("{:?}", edited_file);
 }
 
