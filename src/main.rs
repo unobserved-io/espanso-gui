@@ -428,7 +428,6 @@ impl Application for EGUI {
                                 .width(Length::Fill),
                             )
                             .max_width(300.0)
-                            //.width(Length::Shrink)
                             .on_close(Message::CloseModal),
                     )
                 } else {
@@ -438,7 +437,6 @@ impl Application for EGUI {
                 modal(underlay, overlay)
                     .backdrop(Message::CloseModal)
                     .on_esc(Message::CloseModal)
-                    .align_y(alignment::Vertical::Top)
                     .into()
             }
         }
