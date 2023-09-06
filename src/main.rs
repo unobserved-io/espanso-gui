@@ -47,7 +47,8 @@ struct State {
     match_files: Vec<String>,
     show_modal: bool,
     modal_title: String,
-    modal_message: String,
+    modal_description: String,
+    nav_queue: String,
 }
 
 impl State {
@@ -65,7 +66,8 @@ impl State {
                 },
                 show_modal: false,
                 modal_title: String::new(),
-                modal_message: String::new(),
+                modal_description: String::new(),
+                nav_queue: String::new(),
             }
         } else {
             State {
@@ -77,7 +79,8 @@ impl State {
                 match_files: Vec::new(),
                 show_modal: false,
                 modal_title: String::new(),
-                modal_message: String::new(),
+                modal_description: String::new(),
+                nav_queue: String::new(),
             }
         }
     }
@@ -96,13 +99,9 @@ enum Message {
     ModalCancelPressed,
     ModalOkPressed,
     CloseModal,
-    ShowModal(String),
+    ShowModal(String, String, String),
     Loaded(Result<(), String>),
     FontLoaded(Result<(), font::Error>),
-}
-
-async fn load() -> Result<(), String> {
-    Ok(())
 }
 
 impl Application for EGUI {
@@ -134,11 +133,19 @@ impl Application for EGUI {
                 }
             }
             EGUI::Loaded(state) => match message {
-                Message::ShowModal(value) => {
+                Message::ShowModal(title, description, destination) => {
+                    state.modal_title = title;
+                    state.modal_description = description;
+                    state.nav_queue = destination;
                     state.show_modal = true;
                 }
                 Message::ModalOkPressed => {
                     state.show_modal = false;
+                    if !state.nav_queue.is_empty() {
+                        println!("Nav queue: {}", state.nav_queue);
+                        let destination = state.nav_queue.clone();
+                        let _ = self.update(Message::NavigateTo(destination));
+                    }
                 }
                 Message::CloseModal => {
                     state.show_modal = false;
@@ -164,6 +171,7 @@ impl Application for EGUI {
                     }
                 }
                 Message::NavigateTo(value) => {
+                    println!("Got to navigate.");
                     state.selected_nav = value.clone();
                     let espanso_loc = state.espanso_loc.clone();
                     match value.as_str() {
@@ -264,13 +272,12 @@ impl Application for EGUI {
             EGUI::Loaded(State {
                 espanso_loc,
                 selected_nav,
-                selected_file,
                 original_file,
                 edited_file,
                 match_files,
                 show_modal,
                 modal_title,
-                modal_message,
+                modal_description: modal_message,
                 ..
             }) => {
                 let unsaved_changes = edited_file.matches != original_file.matches;
@@ -438,15 +445,8 @@ impl Application for EGUI {
     }
 }
 
-// Could remove 'a here and make nav_to a String
-fn nav_button<'a>(text: &'a str, nav_to: &'a str, unsaved_changes: bool) -> Button<'a, Message> {
-    button(text).on_press({
-        if unsaved_changes {
-            Message::ShowModal(nav_to.to_string())
-        } else {
-            Message::NavigateTo(nav_to.to_string())
-        }
-    })
+async fn load() -> Result<(), String> {
+    Ok(())
 }
 
 fn read_to_triggers(file_path: PathBuf) -> EspansoYaml {
@@ -534,6 +534,29 @@ fn get_all_match_file_stems(match_dir: PathBuf) -> Vec<String> {
 
     match_file_stems
 }
+
+// TODO: Could remove 'a here and make nav_to a String
+fn nav_button<'a>(
+    text: &'a str,
+    destination: &'a str,
+    unsaved_changes: bool,
+) -> Button<'a, Message> {
+    button(text).on_press({
+        if unsaved_changes {
+            Message::ShowModal(
+                "Unsaved Changes".to_string(),
+                "Leaving this file with erase any unsaved changes.".to_string(),
+                destination.to_string(),
+            )
+        } else {
+            Message::NavigateTo(destination.to_string())
+        }
+    })
+}
+
+// fn navigate_after_modal(destination: String) -> impl Future<Output = Message> {
+//     async move { Message::NavigateTo(destination) }
+// }
 
 mod style {
     use iced::widget::container;
