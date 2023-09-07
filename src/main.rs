@@ -1,9 +1,10 @@
 mod espanso_yaml;
+// mod nav_button_style;
 
 use dirs::config_dir;
 use espanso_yaml::{EspansoYaml, YamlPairs};
 use home;
-use iced::theme::Theme;
+use iced::theme::{self, Theme};
 use iced::widget::{
     button, column, container, row, scrollable, text, text_input, tooltip, Button, Column,
     Container, Scrollable, Space, Tooltip,
@@ -235,21 +236,30 @@ impl Application for EGUI {
                     write_from_triggers(state.selected_file.clone(), state.edited_file.clone());
                     state.original_file = state.edited_file.clone();
                 }
-                Message::AddFilePressed => state.show_new_file_input = true,
+                Message::AddFilePressed => {
+                    if state.show_new_file_input {
+                        state.show_new_file_input = false;
+                        state.new_file_name = String::new();
+                    } else {
+                        state.show_new_file_input = true;
+                    }
+                }
                 Message::NewFileInputChanged(value) => state.new_file_name = value,
                 Message::SubmitNewFileName => {
                     state.show_new_file_input = false;
-                    if state.new_file_name.ends_with(".yml") {
-                        state.new_file_name =
-                            state.new_file_name.trim_end_matches(".yml").to_string()
+                    if !state.new_file_name.trim().is_empty() {
+                        if state.new_file_name.ends_with(".yml") {
+                            state.new_file_name =
+                                state.new_file_name.trim_end_matches(".yml").to_string()
+                        }
+                        create_new_yml_file(PathBuf::from(
+                            state.espanso_loc.clone() + "/match/" + &state.new_file_name + ".yml",
+                        ));
+                        state.match_files = get_all_match_file_stems(
+                            PathBuf::from(state.espanso_loc.clone()).join("match"),
+                        );
+                        state.new_file_name = String::new();
                     }
-                    create_new_yml_file(PathBuf::from(
-                        state.espanso_loc.clone() + "/match/" + &state.new_file_name + ".yml",
-                    ));
-                    state.match_files = get_all_match_file_stems(
-                        PathBuf::from(state.espanso_loc.clone()).join("match"),
-                    );
-                    state.new_file_name = String::new();
                 }
                 _ => {}
             },
@@ -302,12 +312,23 @@ impl Application for EGUI {
                 let mut nav_col = column![row![
                     text("Files").size(20),
                     Tooltip::new(
-                        button("+").on_press(Message::AddFilePressed),
-                        "Add a new file",
+                        button(if show_new_file_input.clone() {
+                            "x"
+                        } else {
+                            "+"
+                        })
+                        .on_press(Message::AddFilePressed)
+                        .style(theme::Button::Text),
+                        if show_new_file_input.clone() {
+                            "Cancel"
+                        } else {
+                            "Add a new file"
+                        },
                         tooltip::Position::Right,
                     )
                 ]
-                .spacing(10)]
+                .spacing(10)
+                .align_items(Alignment::Center)]
                 .spacing(12)
                 .padding(20)
                 .width(175)
@@ -578,17 +599,19 @@ fn nav_button<'a>(
     destination: &'a str,
     unsaved_changes: bool,
 ) -> Button<'a, Message> {
-    button(text).on_press({
-        if unsaved_changes {
-            Message::ShowModal(
-                "Unsaved Changes".to_string(),
-                "Leaving this file with erase any unsaved changes.".to_string(),
-                destination.to_string(),
-            )
-        } else {
-            Message::NavigateTo(destination.to_string())
-        }
-    })
+    button(text)
+        .on_press({
+            if unsaved_changes {
+                Message::ShowModal(
+                    "Unsaved Changes".to_string(),
+                    "Leaving this file with erase any unsaved changes.".to_string(),
+                    destination.to_string(),
+                )
+            } else {
+                Message::NavigateTo(destination.to_string())
+            }
+        })
+        .style(theme::Button::Text)
 }
 
 mod style {
