@@ -1,7 +1,8 @@
+mod egui_data;
 mod espanso_yaml;
-// mod nav_button_style;
 
 use dirs::config_dir;
+use egui_data::EGUIData;
 use espanso_yaml::{EspansoYaml, YamlPairs};
 use home;
 use iced::theme::{self, Theme};
@@ -16,6 +17,8 @@ use iced_aw::{modal, Card};
 use once_cell::sync::Lazy;
 use rfd::FileDialog;
 use serde_yaml::{from_reader, to_writer};
+use std::fs::{create_dir, File, OpenOptions};
+use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::Command as p_cmd;
 use walkdir::WalkDir;
@@ -56,15 +59,25 @@ struct State {
 
 impl State {
     fn new() -> Self {
-        if valid_espanso_dir(get_default_espanso_dir()) {
+        let egui_data = match read_egui_data() {
+            Ok(data) => data,
+            Err(_) => EGUIData {
+                espanso_dir: get_default_espanso_dir(),
+            },
+        };
+        if valid_espanso_dir(egui_data.espanso_dir.clone()) {
+            let new_egui_data = EGUIData {
+                espanso_dir: egui_data.espanso_dir.clone(),
+            };
+            let _ = write_egui_data(&new_egui_data);
             State {
-                espanso_loc: get_default_espanso_dir(),
+                espanso_loc: egui_data.espanso_dir.clone(),
                 selected_nav: "eg-Settings".to_string(),
                 selected_file: PathBuf::new(),
                 original_file: EspansoYaml::default(),
                 edited_file: EspansoYaml::default(),
                 match_files: {
-                    let default_path = PathBuf::from(get_default_espanso_dir());
+                    let default_path = PathBuf::from(egui_data.espanso_dir.clone());
                     get_all_match_file_stems(default_path.join("match"))
                 },
                 show_modal: false,
@@ -224,6 +237,10 @@ impl Application for EGUI {
                         state.espanso_loc = state.espanso_loc.trim_end_matches("/").to_string();
                     }
                     if valid_espanso_dir(state.espanso_loc.clone()) {
+                        let new_egui_data = EGUIData {
+                            espanso_dir: state.espanso_loc.clone(),
+                        };
+                        let _ = write_egui_data(&new_egui_data);
                         state.match_files = get_all_match_file_stems(
                             PathBuf::from(state.espanso_loc.clone()).join("match"),
                         )
@@ -498,13 +515,53 @@ async fn load() -> Result<(), String> {
     Ok(())
 }
 
+fn get_app_dir() -> PathBuf {
+    if let Some(config_dir) = config_dir() {
+        // Mac: /Users/username/Library/Application Support/espansoGUI
+        return config_dir.join("espansoGUI");
+    } else {
+        return PathBuf::from("./");
+    }
+}
+
+fn read_egui_data() -> Result<EGUIData, Box<dyn std::error::Error>> {
+    let path_to_file = get_app_dir().join("egui_data.json");
+    let mut file = File::open(path_to_file)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+
+    let data: EGUIData = serde_json::from_str(&contents)?;
+    Ok(data)
+}
+
+fn write_egui_data(data: &EGUIData) -> Result<(), Box<dyn std::error::Error>> {
+    let directory = get_app_dir();
+    if !directory.is_dir() {
+        match create_dir(directory.clone()) {
+            Ok(_) => println!("App directory created successfully."),
+            Err(err) => eprintln!("Failed to create directory: {}", err),
+        }
+    }
+    let path_to_file = directory.join("egui_data.json");
+
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(path_to_file)?;
+
+    let serialized = serde_json::to_string(data)?;
+    file.write_all(serialized.as_bytes())?;
+    Ok(())
+}
+
 fn read_to_triggers(file_path: PathBuf) -> EspansoYaml {
-    let f = std::fs::File::open(file_path).expect("Could not open file.");
+    let f = File::open(file_path).expect("Could not open file.");
     from_reader(f).expect("Could not read values.")
 }
 
 fn write_from_triggers(file_path: PathBuf, edited_file: EspansoYaml) {
-    let f = std::fs::OpenOptions::new()
+    let f = OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
@@ -514,7 +571,7 @@ fn write_from_triggers(file_path: PathBuf, edited_file: EspansoYaml) {
 }
 
 fn create_new_yml_file(file_path: PathBuf) {
-    let f = std::fs::OpenOptions::new()
+    let f = OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
