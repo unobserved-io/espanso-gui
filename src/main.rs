@@ -5,8 +5,8 @@ use espanso_yaml::{EspansoYaml, YamlPairs};
 use home;
 use iced::theme::Theme;
 use iced::widget::{
-    button, column, container, row, scrollable, text, text_input, Button, Column, Container,
-    Scrollable, Space,
+    button, column, container, row, scrollable, text, text_input, tooltip, Button, Column,
+    Container, Scrollable, Space, Tooltip,
 };
 use iced::{
     alignment, font, window, Alignment, Application, Command, Element, Length, Renderer, Settings,
@@ -49,6 +49,8 @@ struct State {
     modal_title: String,
     modal_description: String,
     nav_queue: String,
+    show_new_file_input: bool,
+    new_file_name: String,
 }
 
 impl State {
@@ -68,6 +70,8 @@ impl State {
                 modal_title: String::new(),
                 modal_description: String::new(),
                 nav_queue: String::new(),
+                show_new_file_input: false,
+                new_file_name: String::new(),
             }
         } else {
             State {
@@ -81,6 +85,8 @@ impl State {
                 modal_title: String::new(),
                 modal_description: String::new(),
                 nav_queue: String::new(),
+                show_new_file_input: false,
+                new_file_name: String::new(),
             }
         }
     }
@@ -89,7 +95,7 @@ impl State {
 #[derive(Debug, Clone)]
 enum Message {
     AddPairPressed,
-    InputChanged(String),
+    EspansoDirInputChanged(String),
     YamlInputChanged(String, usize, String),
     BrowsePressed,
     SettingsSavePressed,
@@ -102,6 +108,9 @@ enum Message {
     ShowModal(String, String, String),
     Loaded(Result<(), String>),
     FontLoaded(Result<(), font::Error>),
+    AddFilePressed,
+    NewFileInputChanged(String),
+    SubmitNewFileName,
 }
 
 impl Application for EGUI {
@@ -142,17 +151,13 @@ impl Application for EGUI {
                 Message::ModalOkPressed => {
                     state.show_modal = false;
                     if !state.nav_queue.is_empty() {
-                        println!("Nav queue: {}", state.nav_queue);
                         let destination = state.nav_queue.clone();
+                        state.nav_queue = String::new();
                         let _ = self.update(Message::NavigateTo(destination));
                     }
                 }
-                Message::CloseModal => {
-                    state.show_modal = false;
-                }
-                Message::ModalCancelPressed => {
-                    state.show_modal = false;
-                }
+                Message::CloseModal => state.show_modal = false,
+                Message::ModalCancelPressed => state.show_modal = false,
                 Message::AddPairPressed => {
                     state.edited_file.matches.push(YamlPairs::default());
                     return scrollable::snap_to(
@@ -160,7 +165,7 @@ impl Application for EGUI {
                         scrollable::RelativeOffset::END,
                     );
                 }
-                Message::InputChanged(value) => {
+                Message::EspansoDirInputChanged(value) => {
                     state.espanso_loc = value;
                 }
                 Message::YamlInputChanged(new_str, i, trig_repl) => {
@@ -171,26 +176,18 @@ impl Application for EGUI {
                     }
                 }
                 Message::NavigateTo(value) => {
-                    println!("Got to navigate.");
                     state.selected_nav = value.clone();
                     let espanso_loc = state.espanso_loc.clone();
                     match value.as_str() {
                         "eg-Preferences" => {
-                            state.selected_file = if espanso_loc.ends_with("/") {
-                                PathBuf::from(espanso_loc + "config/default.yml")
-                            } else {
-                                PathBuf::from(espanso_loc + "/config/default.yml")
-                            };
+                            state.selected_file =
+                                PathBuf::from(espanso_loc + "/config/default.yml");
                         }
                         "eg-Settings" => state.selected_file = PathBuf::new(),
                         _ => {
-                            state.selected_file = if espanso_loc.ends_with("/") {
-                                PathBuf::from(espanso_loc + "match/" + &state.selected_nav + ".yml")
-                            } else {
-                                PathBuf::from(
-                                    espanso_loc + "/match/" + &state.selected_nav + ".yml",
-                                )
-                            };
+                            state.selected_file = PathBuf::from(
+                                espanso_loc + "/match/" + &state.selected_nav + ".yml",
+                            );
                             state.original_file = read_to_triggers(state.selected_file.clone());
                             state.edited_file = state.original_file.clone();
                         }
@@ -222,6 +219,9 @@ impl Application for EGUI {
                     }
                 }
                 Message::SettingsSavePressed => {
+                    if state.espanso_loc.ends_with("/") {
+                        state.espanso_loc = state.espanso_loc.trim_end_matches("/").to_string();
+                    }
                     if valid_espanso_dir(state.espanso_loc.clone()) {
                         state.match_files = get_all_match_file_stems(
                             PathBuf::from(state.espanso_loc.clone()).join("match"),
@@ -234,6 +234,22 @@ impl Application for EGUI {
                 Message::SaveFilePressed => {
                     write_from_triggers(state.selected_file.clone(), state.edited_file.clone());
                     state.original_file = state.edited_file.clone();
+                }
+                Message::AddFilePressed => state.show_new_file_input = true,
+                Message::NewFileInputChanged(value) => state.new_file_name = value,
+                Message::SubmitNewFileName => {
+                    state.show_new_file_input = false;
+                    if state.new_file_name.ends_with(".yml") {
+                        state.new_file_name =
+                            state.new_file_name.trim_end_matches(".yml").to_string()
+                    }
+                    create_new_yml_file(PathBuf::from(
+                        state.espanso_loc.clone() + "/match/" + &state.new_file_name + ".yml",
+                    ));
+                    state.match_files = get_all_match_file_stems(
+                        PathBuf::from(state.espanso_loc.clone()).join("match"),
+                    );
+                    state.new_file_name = String::new();
                 }
                 _ => {}
             },
@@ -277,19 +293,37 @@ impl Application for EGUI {
                 match_files,
                 show_modal,
                 modal_title,
-                modal_description: modal_message,
+                modal_description,
+                show_new_file_input,
+                new_file_name,
                 ..
             }) => {
                 let unsaved_changes = edited_file.matches != original_file.matches;
-                let mut nav_col = column![text("Files").size(20),]
-                    .spacing(12)
-                    .padding(20)
-                    .align_items(Alignment::Start);
+                let mut nav_col = column![row![
+                    text("Files").size(20),
+                    Tooltip::new(
+                        button("+").on_press(Message::AddFilePressed),
+                        "Add a new file",
+                        tooltip::Position::Right,
+                    )
+                ]
+                .spacing(10)]
+                .spacing(12)
+                .padding(20)
+                .width(175)
+                .align_items(Alignment::Start);
                 let mut yml_files_col: Column<'_, Message, Renderer> =
                     Column::new().spacing(8).padding([0, 0, 0, 10]);
                 for yml_file in match_files {
                     yml_files_col =
                         yml_files_col.push(nav_button(yml_file, yml_file, unsaved_changes));
+                }
+                if show_new_file_input.clone() {
+                    yml_files_col = yml_files_col.push(
+                        text_input("", new_file_name)
+                            .on_input(Message::NewFileInputChanged)
+                            .on_submit(Message::SubmitNewFileName),
+                    )
                 }
                 nav_col = nav_col.push(yml_files_col);
                 nav_col =
@@ -304,7 +338,7 @@ impl Application for EGUI {
                             text("Location").size(20),
                             Space::new(10, 0),
                             text_input("", espanso_loc)
-                                .on_input(Message::InputChanged)
+                                .on_input(Message::EspansoDirInputChanged)
                                 .size(20),
                             Space::new(10, 0),
                             button("Browse").on_press(Message::BrowsePressed),
@@ -386,10 +420,6 @@ impl Application for EGUI {
                     }
                 }
 
-                // let mut scrollable = Scrollable::new(scrollable_state);
-                // scrollable.push(all_trigger_replace_rows.padding([20, 20, 20, 40]));
-                // Scrollable::new(all_trigger_replace_rows.padding([20, 20, 20, 40]));
-                // scrollable.scroll_to(scrollable::Scroll::End);
                 let open_file_col =
                     column![
                         Scrollable::new(all_trigger_replace_rows.padding([20, 20, 20, 40]))
@@ -413,7 +443,7 @@ impl Application for EGUI {
 
                 let overlay: Option<Card<'_, Message, Renderer>> = if show_modal.clone() {
                     Some(
-                        Card::new(text(modal_title), text(modal_message))
+                        Card::new(text(modal_title), text(modal_description))
                             .foot(
                                 row![
                                     button("Cancel")
@@ -460,7 +490,16 @@ fn write_from_triggers(file_path: PathBuf, edited_file: EspansoYaml) {
         .open(file_path)
         .expect("Couldn't open file");
     to_writer(f, &edited_file).unwrap();
-    // println!("{:?}", edited_file);
+}
+
+fn create_new_yml_file(file_path: PathBuf) {
+    let f = std::fs::OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(file_path)
+        .expect("Couldn't open file");
+    to_writer(f, &EspansoYaml::default()).unwrap();
 }
 
 fn get_default_espanso_dir() -> String {
@@ -551,10 +590,6 @@ fn nav_button<'a>(
         }
     })
 }
-
-// fn navigate_after_modal(destination: String) -> impl Future<Output = Message> {
-//     async move { Message::NavigateTo(destination) }
-// }
 
 mod style {
     use iced::widget::container;
