@@ -581,8 +581,6 @@ fn create_new_yml_file(file_path: PathBuf) {
 }
 
 fn get_default_espanso_dir() -> String {
-    // TODO: Return to normal after testing
-    return "/Users/ricky/Downloads/espanso".to_string();
     // Get result of 'espanso path' command if possible
     let espanso_path_cmd = p_cmd::new("espanso")
         .arg("path")
