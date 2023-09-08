@@ -415,6 +415,8 @@ impl Application for EGUI {
                             button("+ Add").on_press(Message::AddPairPressed),
                             text(format!("Items: {}", original_file.matches.len())),
                             Space::new(Length::Fill, 0),
+                            text(format!("{}.yml", selected_nav)),
+                            Space::new(Length::Fill, 0),
                             button("Reset").on_press_maybe(
                                 match original_file.matches == edited_file.matches {
                                     true => None,
