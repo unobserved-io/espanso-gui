@@ -45,6 +45,7 @@ enum EGUI {
 struct State {
     espanso_loc: String,
     selected_nav: String,
+    directory_invalid: bool,
     selected_file: PathBuf,
     original_file: EspansoYaml,
     edited_file: EspansoYaml,
@@ -73,6 +74,7 @@ impl State {
             State {
                 espanso_loc: egui_data.espanso_dir.clone(),
                 selected_nav: "eg-Settings".to_string(),
+                directory_invalid: false,
                 selected_file: PathBuf::new(),
                 original_file: EspansoYaml::default(),
                 edited_file: EspansoYaml::default(),
@@ -91,6 +93,7 @@ impl State {
             State {
                 espanso_loc: String::new(),
                 selected_nav: "eg-Settings".to_string(),
+                directory_invalid: false,
                 selected_file: PathBuf::new(),
                 original_file: EspansoYaml::default(),
                 edited_file: EspansoYaml::default(),
@@ -226,9 +229,10 @@ impl Application for EGUI {
                     if selected_folder.is_some() {
                         let espanso_dir = selected_folder.unwrap();
                         if valid_espanso_dir(espanso_dir.display().to_string()) {
+                            state.directory_invalid = false;
                             state.espanso_loc = espanso_dir.into_os_string().into_string().unwrap();
                         } else {
-                            // TODO: Show invalid directory
+                            state.directory_invalid = true;
                         }
                     }
                 }
@@ -237,6 +241,7 @@ impl Application for EGUI {
                         state.espanso_loc = state.espanso_loc.trim_end_matches("/").to_string();
                     }
                     if valid_espanso_dir(state.espanso_loc.clone()) {
+                        state.directory_invalid = false;
                         let new_egui_data = EGUIData {
                             espanso_dir: state.espanso_loc.clone(),
                         };
@@ -244,6 +249,8 @@ impl Application for EGUI {
                         state.match_files = get_all_match_file_stems(
                             PathBuf::from(state.espanso_loc.clone()).join("match"),
                         )
+                    } else {
+                        state.directory_invalid = true;
                     }
                 }
                 Message::ResetPressed => {
@@ -315,6 +322,7 @@ impl Application for EGUI {
             EGUI::Loaded(State {
                 espanso_loc,
                 selected_nav,
+                directory_invalid,
                 original_file,
                 edited_file,
                 match_files,
@@ -381,6 +389,11 @@ impl Application for EGUI {
                             button("Browse").on_press(Message::BrowsePressed),
                         ]
                         .align_items(Alignment::Center),
+                        text(if *directory_invalid {
+                            "Not a valid directory"
+                        } else {
+                            ""
+                        }),
                     ]
                     .spacing(15)
                     .padding([0, 0, 0, 20]),
