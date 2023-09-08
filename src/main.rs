@@ -15,9 +15,10 @@ use iced::{
 };
 use iced_aw::{modal, Card};
 use once_cell::sync::Lazy;
+use regex::Regex;
 use rfd::FileDialog;
 use serde_yaml::{from_reader, to_writer};
-use std::fs::{create_dir, File, OpenOptions};
+use std::fs::{create_dir, rename, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::Command as p_cmd;
@@ -56,6 +57,7 @@ struct State {
     nav_queue: String,
     show_new_file_input: bool,
     new_file_name: String,
+    file_name_change: String,
 }
 
 impl State {
@@ -88,6 +90,7 @@ impl State {
                 nav_queue: String::new(),
                 show_new_file_input: false,
                 new_file_name: String::new(),
+                file_name_change: String::new(),
             }
         } else {
             State {
@@ -104,6 +107,7 @@ impl State {
                 nav_queue: String::new(),
                 show_new_file_input: false,
                 new_file_name: String::new(),
+                file_name_change: String::new(),
             }
         }
     }
@@ -128,6 +132,8 @@ enum Message {
     AddFilePressed,
     NewFileInputChanged(String),
     SubmitNewFileName,
+    FileNameChangeInputChanged(String),
+    FileNameChangeSubmit,
 }
 
 impl Application for EGUI {
@@ -207,6 +213,7 @@ impl Application for EGUI {
                             );
                             state.original_file = read_to_triggers(state.selected_file.clone());
                             state.edited_file = state.original_file.clone();
+                            state.file_name_change = state.selected_nav.clone();
                         }
                     }
                 }
@@ -285,6 +292,31 @@ impl Application for EGUI {
                         state.new_file_name = String::new();
                     }
                 }
+                Message::FileNameChangeInputChanged(value) => {
+                    if is_valid_file_name(&value.clone()) {
+                        state.file_name_change = value;
+                    }
+                }
+                Message::FileNameChangeSubmit => {
+                    if state.file_name_change != state.selected_nav
+                        && is_valid_file_name(&state.file_name_change)
+                    {
+                        let match_path = PathBuf::from(state.espanso_loc.clone()).join("match");
+                        let from_path = match_path.join(format!("{}.yml", state.selected_nav));
+                        let to_path = match_path.join(format!("{}.yml", state.file_name_change));
+                        match rename(from_path, to_path.clone()) {
+                            Ok(_) => {}
+                            Err(err) => eprintln!("Failed to rename file: {}", err),
+                        }
+
+                        // Refresh file list
+                        state.match_files = get_all_match_file_stems(match_path);
+
+                        // Set necessary variables to new name
+                        state.selected_nav = state.file_name_change.clone();
+                        state.selected_file = to_path;
+                    }
+                }
                 _ => {}
             },
         }
@@ -331,6 +363,7 @@ impl Application for EGUI {
                 modal_description,
                 show_new_file_input,
                 new_file_name,
+                file_name_change,
                 ..
             }) => {
                 let unsaved_changes = edited_file.matches != original_file.matches;
@@ -415,7 +448,14 @@ impl Application for EGUI {
                             button("+ Add").on_press(Message::AddPairPressed),
                             text(format!("Items: {}", original_file.matches.len())),
                             Space::new(Length::Fill, 0),
-                            text(format!("{}.yml", selected_nav)),
+                            text_input(file_name_change, file_name_change)
+                                .on_input(Message::FileNameChangeInputChanged)
+                                .on_submit(Message::FileNameChangeSubmit),
+                            text(if file_name_change != selected_nav {
+                                "Press enter to save changes"
+                            } else {
+                                ""
+                            }),
                             Space::new(Length::Fill, 0),
                             button("Reset").on_press_maybe(
                                 match original_file.matches == edited_file.matches {
@@ -681,6 +721,11 @@ fn nav_button<'a>(
             }
         })
         .style(theme::Button::Text)
+}
+
+fn is_valid_file_name(file_name: &str) -> bool {
+    let pattern = Regex::new(r"^[\w\-. ]+$").unwrap();
+    pattern.is_match(file_name)
 }
 
 mod style {
