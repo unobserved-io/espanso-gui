@@ -193,7 +193,7 @@ impl Application for EGUI {
                     state.selected_nav = value.clone();
                     let espanso_loc = state.espanso_loc.clone();
                     match value.as_str() {
-                        "eg-Preferences" => {
+                        "eg-Config" => {
                             state.selected_file =
                                 PathBuf::from(espanso_loc + "/config/default.yml");
                         }
@@ -288,7 +288,7 @@ impl Application for EGUI {
         let nav_col = column![
             text("Files").size(20),
             column![text("JA.yaml").size(16)].padding([0, 0, 0, 10]),
-            text("Preferences").size(20),
+            text("Config").size(20),
             text("Settings").size(20)
         ]
         .spacing(12)
@@ -364,8 +364,7 @@ impl Application for EGUI {
                     )
                 }
                 nav_col = nav_col.push(yml_files_col);
-                nav_col =
-                    nav_col.push(nav_button("Preferences", "eg-Preferences", unsaved_changes));
+                nav_col = nav_col.push(nav_button("Config", "eg-Config", unsaved_changes));
                 nav_col = nav_col.push(nav_button("Settings", "eg-Settings", unsaved_changes));
 
                 let settings_col = column![
@@ -470,7 +469,7 @@ impl Application for EGUI {
                     nav_col,
                     match selected_nav.as_str() {
                         "eg-Settings" => settings_col,
-                        // "eg-Preferences" => preferences_col,
+                        // "eg-Config" => config_col,
                         _ => open_file_col,
                     }
                 ];
