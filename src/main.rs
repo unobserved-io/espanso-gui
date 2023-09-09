@@ -288,8 +288,24 @@ impl Application for EGUI {
                     state.edited_file = state.original_file.clone();
                 }
                 Message::SaveFilePressed => {
-                    write_from_triggers(state.selected_file.clone(), state.edited_file.clone());
-                    state.original_file = state.edited_file.clone();
+                    let mut empty_lines = false;
+                    for pairs in state.edited_file.matches.clone() {
+                        if pairs.trigger.trim().is_empty() || pairs.replace.trim().is_empty() {
+                            empty_lines = true;
+                            break;
+                        }
+                    }
+                    if empty_lines {
+                        state.modal_title = "Empty Lines".to_string();
+                        state.modal_description = "No text boxes can be empty.".to_string();
+                        if !state.nav_queue.is_empty() {
+                            state.nav_queue = String::new();
+                        }
+                        state.show_modal = true;
+                    } else {
+                        write_from_triggers(state.selected_file.clone(), state.edited_file.clone());
+                        state.original_file = state.edited_file.clone();
+                    }
                 }
                 Message::AddFilePressed => {
                     if state.show_new_file_input {
