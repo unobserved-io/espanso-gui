@@ -1,5 +1,6 @@
 mod egui_data;
 mod espanso_yaml;
+mod parse_config;
 
 use dirs::config_dir;
 use egui_data::EGUIData;
@@ -17,6 +18,7 @@ use iced_aw::graphics::icons;
 use iced_aw::Icon;
 use iced_aw::{modal, Card};
 use once_cell::sync::Lazy;
+use parse_config::ParsedConfig;
 use regex::Regex;
 use rfd::FileDialog;
 use serde_yaml::{from_reader, to_writer};
@@ -52,6 +54,8 @@ struct State {
     selected_file: PathBuf,
     original_file: EspansoYaml,
     edited_file: EspansoYaml,
+    original_config: ParsedConfig,
+    edited_config: ParsedConfig,
     match_files: Vec<String>,
     show_modal: bool,
     modal_title: String,
@@ -87,6 +91,8 @@ impl State {
                     let default_path = PathBuf::from(egui_data.espanso_dir.clone());
                     get_all_match_file_stems(default_path.join("match"))
                 },
+                original_config: ParsedConfig::default(),
+                edited_config: ParsedConfig::default(),
                 show_modal: false,
                 modal_title: String::new(),
                 modal_description: String::new(),
@@ -104,6 +110,8 @@ impl State {
                 selected_file: PathBuf::new(),
                 original_file: EspansoYaml::default(),
                 edited_file: EspansoYaml::default(),
+                original_config: ParsedConfig::default(),
+                edited_config: ParsedConfig::default(),
                 match_files: Vec::new(),
                 show_modal: false,
                 modal_title: String::new(),
@@ -229,6 +237,14 @@ impl Application for EGUI {
                         "eg-Config" => {
                             state.selected_file =
                                 PathBuf::from(espanso_loc + "/config/default.yml");
+                            match ParsedConfig::load(&state.selected_file) {
+                                Ok(config) => {
+                                    state.original_config = config;
+                                    state.edited_config = state.original_config.clone();
+                                    println!("{:?}", state.original_config);
+                                }
+                                Err(e) => eprintln!("Error {:?}", e),
+                            }
                         }
                         "eg-Settings" => state.selected_file = PathBuf::new(),
                         _ => {
