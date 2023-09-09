@@ -13,12 +13,14 @@ use iced::widget::{
 use iced::{
     alignment, font, window, Alignment, Application, Command, Element, Length, Renderer, Settings,
 };
+use iced_aw::graphics::icons;
+use iced_aw::Icon;
 use iced_aw::{modal, Card};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rfd::FileDialog;
 use serde_yaml::{from_reader, to_writer};
-use std::fs::{create_dir, rename, File, OpenOptions};
+use std::fs::{create_dir, remove_file, rename, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::Command as p_cmd;
@@ -54,6 +56,7 @@ struct State {
     show_modal: bool,
     modal_title: String,
     modal_description: String,
+    modal_ok_text: String,
     nav_queue: String,
     show_new_file_input: bool,
     new_file_name: String,
@@ -87,6 +90,7 @@ impl State {
                 show_modal: false,
                 modal_title: String::new(),
                 modal_description: String::new(),
+                modal_ok_text: "OK".to_string(),
                 nav_queue: String::new(),
                 show_new_file_input: false,
                 new_file_name: String::new(),
@@ -104,6 +108,7 @@ impl State {
                 show_modal: false,
                 modal_title: String::new(),
                 modal_description: String::new(),
+                modal_ok_text: "OK".to_string(),
                 nav_queue: String::new(),
                 show_new_file_input: false,
                 new_file_name: String::new(),
@@ -134,6 +139,7 @@ enum Message {
     SubmitNewFileName,
     FileNameChangeInputChanged(String),
     FileNameChangeSubmit,
+    DeleteFilePressed,
 }
 
 impl Application for EGUI {
@@ -173,14 +179,32 @@ impl Application for EGUI {
                 }
                 Message::ModalOkPressed => {
                     state.show_modal = false;
-                    if !state.nav_queue.is_empty() {
+                    if state.nav_queue == "eg-Delete" {
+                        // Delete state.selected_file
+                        match remove_file(state.selected_file.clone()) {
+                            Ok(_) => {}
+                            Err(err) => eprintln!("Failed to delete file: {}", err),
+                        }
+                        // Update file list
+                        state.match_files = get_all_match_file_stems(
+                            PathBuf::from(state.espanso_loc.clone()).join("match"),
+                        );
+                        // Navigate back to Settings
+                        state.nav_queue = String::new();
+                        state.modal_ok_text = "OK".to_string();
+                        let _ = self.update(Message::NavigateTo("eg-Settings".to_string()));
+                    } else if !state.nav_queue.is_empty() {
                         let destination = state.nav_queue.clone();
                         state.nav_queue = String::new();
                         let _ = self.update(Message::NavigateTo(destination));
                     }
                 }
                 Message::CloseModal => state.show_modal = false,
-                Message::ModalCancelPressed => state.show_modal = false,
+                Message::ModalCancelPressed => {
+                    state.show_modal = false;
+                    state.modal_ok_text = "OK".to_string();
+                    state.nav_queue = String::new();
+                }
                 Message::AddPairPressed => {
                     state.edited_file.matches.push(YamlPairs::default());
                     return scrollable::snap_to(
@@ -317,6 +341,15 @@ impl Application for EGUI {
                         state.selected_file = to_path;
                     }
                 }
+                Message::DeleteFilePressed => {
+                    state.modal_title = "Delete file?".to_string();
+                    state.modal_description =
+                        "Are you sure you want to delete the file? This cannot be undone."
+                            .to_string();
+                    state.modal_ok_text = "Delete".to_string();
+                    state.nav_queue = "eg-Delete".to_string();
+                    state.show_modal = true;
+                }
                 _ => {}
             },
         }
@@ -361,6 +394,7 @@ impl Application for EGUI {
                 show_modal,
                 modal_title,
                 modal_description,
+                modal_ok_text,
                 show_new_file_input,
                 new_file_name,
                 file_name_change,
@@ -457,6 +491,9 @@ impl Application for EGUI {
                                 ""
                             }),
                             Space::new(Length::Fill, 0),
+                            button(text(Icon::Trash).font(icons::ICON_FONT))
+                                .on_press(Message::DeleteFilePressed)
+                                .style(theme::Button::Destructive),
                             button("Reset").on_press_maybe(
                                 match original_file.matches == edited_file.matches {
                                     true => None,
@@ -538,12 +575,23 @@ impl Application for EGUI {
                         Card::new(text(modal_title), text(modal_description))
                             .foot(
                                 row![
-                                    button("Cancel")
-                                        .width(Length::Fill)
-                                        .on_press(Message::ModalCancelPressed),
-                                    button("Ok")
-                                        .width(Length::Fill)
-                                        .on_press(Message::ModalOkPressed),
+                                    button(
+                                        text("Cancel")
+                                            .horizontal_alignment(alignment::Horizontal::Center)
+                                    )
+                                    .width(Length::Fill)
+                                    .on_press(Message::ModalCancelPressed),
+                                    button(
+                                        text(modal_ok_text)
+                                            .horizontal_alignment(alignment::Horizontal::Center)
+                                    )
+                                    .width(Length::Fill)
+                                    .style(if modal_ok_text == "Delete" {
+                                        theme::Button::Destructive
+                                    } else {
+                                        theme::Button::Primary
+                                    })
+                                    .on_press(Message::ModalOkPressed),
                                 ]
                                 .spacing(10)
                                 .padding(5)
