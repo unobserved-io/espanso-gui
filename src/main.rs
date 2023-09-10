@@ -25,7 +25,7 @@ use std::collections::BTreeMap;
 use std::env;
 use std::fs::{create_dir, remove_file, rename, File, OpenOptions};
 use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command as p_cmd;
 use walkdir::WalkDir;
 
@@ -175,6 +175,9 @@ enum Message {
     UseXclipBackendToggled(bool),
     ExcludeOrphanEventsToggled(bool),
     KeyboardLayoutCacheIntervalInput(i64),
+    SaveConfigPressed,
+    UndoConfigPressed,
+    ResetConfigPressed,
 }
 
 impl Application for EGUI {
@@ -267,6 +270,15 @@ impl Application for EGUI {
                             match ParsedConfig::load(&state.selected_file) {
                                 Ok(config) => {
                                     state.original_config = config;
+                                    // Set combo list prefs to default if not set to prevent it
+                                    // loooking like changes were made when they weren't
+                                    if state.original_config.backend == None {
+                                        state.original_config.backend = Some("Auto".to_string());
+                                    }
+                                    if state.original_config.toggle_key == None {
+                                        state.original_config.toggle_key = Some("OFF".to_string());
+                                    }
+
                                     state.edited_config = state.original_config.clone();
                                 }
                                 Err(e) => eprintln!("Error {:?}", e),
@@ -475,6 +487,18 @@ impl Application for EGUI {
                 Message::KeyboardLayoutCacheIntervalInput(value) => {
                     state.edited_config.win32_keyboard_layout_cache_interval = Some(value)
                 }
+                Message::SaveConfigPressed => {
+                    overwrite_config(&state.selected_file.clone(), &state.edited_config.clone());
+                    state.original_config = state.edited_config.clone();
+                }
+                Message::ResetConfigPressed => {
+                    state.edited_config = ParsedConfig::default();
+                    // Reset combo list prefs to default to prevent it
+                    // loooking like changes were made when they weren't
+                    state.edited_config.backend = Some("Auto".to_string());
+                    state.edited_config.toggle_key = Some("OFF".to_string());
+                }
+                Message::UndoConfigPressed => state.edited_config = state.original_config.clone(),
                 _ => {}
             },
         }
@@ -603,7 +627,10 @@ impl Application for EGUI {
 
                 let mut all_trigger_replace_rows: Column<'_, Message, Renderer> =
                     Column::new().spacing(8).padding([0, 0, 0, 10]);
-                if !selected_nav.is_empty() && selected_nav != "eg-Settings" {
+                if !selected_nav.is_empty()
+                    && selected_nav != "eg-Settings"
+                    && selected_nav != "eg-Config"
+                {
                     all_trigger_replace_rows = all_trigger_replace_rows.push(
                         row![
                             button("+ Add").on_press(Message::AddPairPressed),
@@ -725,7 +752,39 @@ impl Application for EGUI {
                     .align_items(Alignment::Start);
 
                 let all_config_rows = column!(
-                    row![Space::new(Length::Fill, 0)],
+                    row![
+                        Tooltip::new(
+                            button(text(Icon::Trash).font(icons::ICON_FONT))
+                                .on_press(Message::ResetConfigPressed)
+                                .style(theme::Button::Destructive),
+                            "Reset all to defaults",
+                            tooltip::Position::Bottom,
+                        ),
+                        Space::new(Length::Fill, 0),
+                        text("default.yml"),
+                        Space::new(Length::Fill, 0),
+                        Tooltip::new(
+                            button(text(Icon::ArrowCounterclockwise).font(icons::ICON_FONT))
+                                .on_press_maybe(match original_config == edited_config {
+                                    true => None,
+                                    false => Some(Message::UndoConfigPressed),
+                                })
+                                .style(theme::Button::Secondary),
+                            if original_config != edited_config {
+                                "Undo unsaved changes"
+                            } else {
+                                ""
+                            },
+                            tooltip::Position::Bottom,
+                        ),
+                        button("Save").on_press_maybe(match original_config == edited_config {
+                            true => None,
+                            false => Some(Message::SaveConfigPressed),
+                        }),
+                    ]
+                    .align_items(Alignment::Center)
+                    .spacing(10)
+                    .padding([0, 0, 20, 0]),
                     row![
                         text("Backend").size(20).width(300),
                         pick_list(
@@ -734,7 +793,11 @@ impl Application for EGUI {
                                 "Clipboard".to_string(),
                                 "Inject".to_string(),
                             ],
-                            edited_config.backend.clone(),
+                            if edited_config.backend.clone().unwrap_or_default().is_empty() {
+                                Some("auto".to_string())
+                            } else {
+                                edited_config.backend.clone()
+                            },
                             Message::BackendPicked
                         )
                     ]
@@ -1211,29 +1274,39 @@ fn write_egui_data(data: &EGUIData) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn read_to_triggers(file_path: PathBuf) -> EspansoYaml {
-    let f = File::open(file_path).expect("Could not open file.");
-    from_reader(f).expect("Could not read values.")
+fn read_to_triggers(path: PathBuf) -> EspansoYaml {
+    let file = File::open(path).expect("Could not open file.");
+    from_reader(file).expect("Could not read values.")
 }
 
-fn write_from_triggers(file_path: PathBuf, edited_file: EspansoYaml) {
-    let f = OpenOptions::new()
+fn write_from_triggers(path: PathBuf, edited_file: EspansoYaml) {
+    let file = OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
-        .open(file_path)
+        .open(path)
         .expect("Couldn't open file");
-    to_writer(f, &edited_file).unwrap();
+    to_writer(file, &edited_file).unwrap();
 }
 
 fn create_new_yml_file(file_path: PathBuf) {
-    let f = OpenOptions::new()
+    let file = OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
         .open(file_path)
         .expect("Couldn't open file");
-    to_writer(f, &EspansoYaml::default()).unwrap();
+    to_writer(file, &EspansoYaml::default()).unwrap();
+}
+
+fn overwrite_config(path: &Path, config: &ParsedConfig) {
+    let file = OpenOptions::new()
+        .write(true)
+        .truncate(true)
+        .create(true)
+        .open(path)
+        .expect("Couldn't write config to file");
+    to_writer(file, config).unwrap();
 }
 
 fn get_default_espanso_dir() -> String {

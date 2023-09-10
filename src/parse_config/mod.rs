@@ -6,12 +6,13 @@
  */
 
 use anyhow::Result;
+use serde::Serialize;
 use std::{collections::BTreeMap, path::Path};
 use thiserror::Error;
 
 mod yaml_config;
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize)]
 pub(crate) struct ParsedConfig {
     pub label: Option<String>,
 
