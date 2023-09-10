@@ -8,20 +8,21 @@ use espanso_yaml::{EspansoYaml, YamlPairs};
 use home;
 use iced::theme::{self, Theme};
 use iced::widget::{
-    button, column, container, row, scrollable, text, text_input, tooltip, Button, Column,
-    Container, Scrollable, Space, Tooltip,
+    button, column, container, pick_list, row, scrollable, text, text_input, toggler, tooltip,
+    Button, Column, Container, Scrollable, Space, Tooltip,
 };
 use iced::{
     alignment, font, window, Alignment, Application, Command, Element, Length, Renderer, Settings,
 };
 use iced_aw::graphics::icons;
-use iced_aw::Icon;
-use iced_aw::{modal, Card};
+use iced_aw::{modal, number_input, Card, Icon};
 use once_cell::sync::Lazy;
 use parse_config::ParsedConfig;
 use regex::Regex;
 use rfd::FileDialog;
 use serde_yaml::{from_reader, to_writer};
+use std::collections::BTreeMap;
+use std::env;
 use std::fs::{create_dir, remove_file, rename, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::PathBuf;
@@ -148,6 +149,32 @@ enum Message {
     FileNameChangeInputChanged(String),
     FileNameChangeSubmit,
     DeleteFilePressed,
+    BackendPicked(String),
+    EnableToggled(bool),
+    ToggleKeyPicked(String),
+    InjectDelayInput(usize),
+    KeyDelayInput(usize),
+    ClipboardThresholdInput(usize),
+    PasteShortcutInput(String),
+    SearchShortcutInput(String),
+    SearchTriggerInput(String),
+    PrePasteDelayInput(usize),
+    X11FastInjectToggled(bool),
+    PasteShortcutEventDelayInput(usize),
+    AutoRestartToggled(bool),
+    PreserveClipboardToggled(bool),
+    RestoreClipboardDelayInput(usize),
+    EvdevModifierDelayInput(usize),
+    WordSeparatorsInput(String),
+    BackspaceLimitInput(usize),
+    ApplyPatchToggled(bool),
+    KeyboardLayoutInput(String),
+    UndoBackspaceToggled(bool),
+    ShowNotificationsToggled(bool),
+    ShowIconToggled(bool),
+    UseXclipBackendToggled(bool),
+    ExcludeOrphanEventsToggled(bool),
+    KeyboardLayoutCacheIntervalInput(i64),
 }
 
 impl Application for EGUI {
@@ -241,7 +268,6 @@ impl Application for EGUI {
                                 Ok(config) => {
                                     state.original_config = config;
                                     state.edited_config = state.original_config.clone();
-                                    println!("{:?}", state.original_config);
                                 }
                                 Err(e) => eprintln!("Error {:?}", e),
                             }
@@ -382,6 +408,73 @@ impl Application for EGUI {
                     state.nav_queue = "eg-Delete".to_string();
                     state.show_modal = true;
                 }
+                Message::BackendPicked(value) => state.edited_config.backend = Some(value),
+                Message::EnableToggled(value) => state.edited_config.enable = Some(value),
+                Message::ToggleKeyPicked(value) => state.edited_config.toggle_key = Some(value),
+                Message::InjectDelayInput(value) => state.edited_config.inject_delay = Some(value),
+                Message::KeyDelayInput(value) => state.edited_config.key_delay = Some(value),
+                Message::ClipboardThresholdInput(value) => {
+                    state.edited_config.clipboard_threshold = Some(value)
+                }
+                Message::PasteShortcutInput(value) => {
+                    state.edited_config.paste_shortcut = Some(value)
+                }
+                Message::SearchShortcutInput(value) => {
+                    state.edited_config.search_shortcut = Some(value)
+                }
+                Message::SearchTriggerInput(value) => {
+                    state.edited_config.search_trigger = Some(value)
+                }
+                Message::PrePasteDelayInput(value) => {
+                    state.edited_config.pre_paste_delay = Some(value)
+                }
+                Message::X11FastInjectToggled(value) => {
+                    state.edited_config.disable_x11_fast_inject = Some(value)
+                }
+                Message::PasteShortcutEventDelayInput(value) => {
+                    state.edited_config.paste_shortcut_event_delay = Some(value)
+                }
+                Message::AutoRestartToggled(value) => {
+                    state.edited_config.auto_restart = Some(value)
+                }
+                Message::PreserveClipboardToggled(value) => {
+                    state.edited_config.preserve_clipboard = Some(value)
+                }
+                Message::RestoreClipboardDelayInput(value) => {
+                    state.edited_config.restore_clipboard_delay = Some(value)
+                }
+                Message::EvdevModifierDelayInput(value) => {
+                    state.edited_config.evdev_modifier_delay = Some(value)
+                }
+                Message::WordSeparatorsInput(value) => {
+                    state.edited_config.word_separators =
+                        Some(serde_json::from_str(&value).unwrap())
+                }
+                Message::BackspaceLimitInput(value) => {
+                    state.edited_config.backspace_limit = Some(value)
+                }
+                Message::ApplyPatchToggled(value) => state.edited_config.apply_patch = Some(value),
+                Message::KeyboardLayoutInput(value) => {
+                    let json_string = format!("{{ \"layout\": \"{}\" }}", value);
+                    let map: BTreeMap<String, String> = serde_json::from_str(&json_string).unwrap();
+                    state.edited_config.keyboard_layout = Some(map);
+                }
+                Message::UndoBackspaceToggled(value) => {
+                    state.edited_config.undo_backspace = Some(value)
+                }
+                Message::ShowNotificationsToggled(value) => {
+                    state.edited_config.show_notifications = Some(value)
+                }
+                Message::ShowIconToggled(value) => state.edited_config.show_icon = Some(value),
+                Message::UseXclipBackendToggled(value) => {
+                    state.edited_config.x11_use_xclip_backend = Some(value)
+                }
+                Message::ExcludeOrphanEventsToggled(value) => {
+                    state.edited_config.win32_exclude_orphan_events = Some(value)
+                }
+                Message::KeyboardLayoutCacheIntervalInput(value) => {
+                    state.edited_config.win32_keyboard_layout_cache_interval = Some(value)
+                }
                 _ => {}
             },
         }
@@ -422,6 +515,8 @@ impl Application for EGUI {
                 directory_invalid,
                 original_file,
                 edited_file,
+                original_config,
+                edited_config,
                 match_files,
                 show_modal,
                 modal_title,
@@ -581,6 +676,46 @@ impl Application for EGUI {
                     }
                 }
 
+                let paste_shortcut = if edited_config.paste_shortcut.is_some() {
+                    edited_config.paste_shortcut.clone().unwrap()
+                } else {
+                    if env::consts::OS == "macos" {
+                        "CMD+V".to_string()
+                    } else {
+                        "CTRL+V".to_string()
+                    }
+                };
+                let search_shortcut = if edited_config.search_shortcut.is_some() {
+                    edited_config.search_shortcut.clone().unwrap()
+                } else {
+                    "ALT+SPACE".to_string()
+                };
+                let search_trigger = if edited_config.search_trigger.is_some() {
+                    edited_config.search_trigger.clone().unwrap()
+                } else {
+                    "off".to_string()
+                };
+                let word_separators = if edited_config.word_separators.is_some() {
+                    serde_json::to_string(&edited_config.word_separators.clone().unwrap())
+                        .unwrap_or_default()
+                } else {
+                    "[\" \", \",\", \".\", \"?\", \"!\", \"\\r\", \"\\n\", 22]".to_string()
+                };
+                let keyboard_layout = if edited_config.keyboard_layout.is_some() {
+                    if edited_config
+                        .keyboard_layout
+                        .clone()
+                        .unwrap()
+                        .contains_key("layout")
+                    {
+                        edited_config.keyboard_layout.clone().unwrap()["layout"].clone()
+                    } else {
+                        "us".to_string()
+                    }
+                } else {
+                    "us".to_string()
+                };
+
                 let open_file_col =
                     column![
                         Scrollable::new(all_trigger_replace_rows.padding([20, 20, 20, 40]))
@@ -589,11 +724,398 @@ impl Application for EGUI {
                     .width(Length::Fill)
                     .align_items(Alignment::Start);
 
+                let all_config_rows = column!(
+                    row![Space::new(Length::Fill, 0)],
+                    row![
+                        text("Backend").size(20).width(300),
+                        pick_list(
+                            vec![
+                                "Auto".to_string(),
+                                "Clipboard".to_string(),
+                                "Inject".to_string(),
+                            ],
+                            edited_config.backend.clone(),
+                            Message::BackendPicked
+                        )
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Enable").size(20).width(300),
+                        toggler(
+                            "".to_string(),
+                            if edited_config.enable.is_some() {
+                                edited_config.enable.clone().unwrap()
+                            } else {
+                                true
+                            },
+                            Message::EnableToggled
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Toggle key").size(20).width(300),
+                        pick_list(
+                            vec![
+                                "OFF".to_string(),
+                                "CTRL".to_string(),
+                                "ALT".to_string(),
+                                "SHIFT".to_string(),
+                                "META".to_string(),
+                                "LEFT_CTRL".to_string(),
+                                "LEFT_ALT".to_string(),
+                                "LEFT_SHIFT".to_string(),
+                                "LEFT_META".to_string(),
+                                "RIGHT_CTRL".to_string(),
+                                "RIGHT_ALT".to_string(),
+                                "RIGHT_SHIFT".to_string(),
+                                "RIGHT_META".to_string(),
+                            ],
+                            edited_config.toggle_key.clone(),
+                            Message::ToggleKeyPicked
+                        )
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Inject delay").size(20).width(300),
+                        number_input(
+                            if edited_config.inject_delay.is_some() {
+                                edited_config.inject_delay.unwrap()
+                            } else {
+                                0
+                            },
+                            1000,
+                            Message::InjectDelayInput
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Key delay").size(20).width(300),
+                        number_input(
+                            if edited_config.key_delay.is_some() {
+                                edited_config.key_delay.unwrap()
+                            } else {
+                                0
+                            },
+                            1000,
+                            Message::KeyDelayInput
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Clipboard threshold").size(20).width(300),
+                        number_input(
+                            if edited_config.clipboard_threshold.is_some() {
+                                edited_config.clipboard_threshold.unwrap()
+                            } else {
+                                100
+                            },
+                            1000,
+                            Message::ClipboardThresholdInput
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Paste shortcut").size(20).width(300),
+                        text_input(
+                            if env::consts::OS == "macos" {
+                                "CMD+V"
+                            } else {
+                                "CTRL+V"
+                            },
+                            &paste_shortcut,
+                        )
+                        .on_input(Message::PasteShortcutInput)
+                        .width(Length::Fixed(130.0))
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Search shortcut").size(20).width(300),
+                        text_input("ALT+SPACE", &search_shortcut)
+                            .on_input(Message::SearchShortcutInput)
+                            .width(Length::Fixed(130.0))
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Search trigger").size(20).width(300),
+                        text_input("off", &search_trigger)
+                            .on_input(Message::SearchTriggerInput)
+                            .width(Length::Fixed(130.0))
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Pre-paste delay").size(20).width(300),
+                        number_input(
+                            if edited_config.pre_paste_delay.is_some() {
+                                edited_config.pre_paste_delay.unwrap()
+                            } else {
+                                300
+                            },
+                            1000,
+                            Message::PrePasteDelayInput
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Disable X11 fast inject").size(20).width(300),
+                        toggler(
+                            "".to_string(),
+                            if edited_config.disable_x11_fast_inject.is_some() {
+                                edited_config.disable_x11_fast_inject.clone().unwrap()
+                            } else {
+                                false
+                            },
+                            Message::X11FastInjectToggled
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Paste shortcut event delay").size(20).width(300),
+                        number_input(
+                            if edited_config.paste_shortcut_event_delay.is_some() {
+                                edited_config.paste_shortcut_event_delay.unwrap()
+                            } else {
+                                10
+                            },
+                            1000,
+                            Message::PasteShortcutEventDelayInput
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Auto restart").size(20).width(300),
+                        toggler(
+                            "".to_string(),
+                            if edited_config.auto_restart.is_some() {
+                                edited_config.auto_restart.clone().unwrap()
+                            } else {
+                                true
+                            },
+                            Message::AutoRestartToggled
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Preserve clipboard").size(20).width(300),
+                        toggler(
+                            "".to_string(),
+                            if edited_config.preserve_clipboard.is_some() {
+                                edited_config.preserve_clipboard.clone().unwrap()
+                            } else {
+                                true
+                            },
+                            Message::PreserveClipboardToggled
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Restore clipboard delay").size(20).width(300),
+                        number_input(
+                            if edited_config.restore_clipboard_delay.is_some() {
+                                edited_config.restore_clipboard_delay.unwrap()
+                            } else {
+                                300
+                            },
+                            1000,
+                            Message::RestoreClipboardDelayInput
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("EVDEV modifier delay").size(20).width(300),
+                        number_input(
+                            if edited_config.evdev_modifier_delay.is_some() {
+                                edited_config.evdev_modifier_delay.unwrap()
+                            } else {
+                                10
+                            },
+                            1000,
+                            Message::EvdevModifierDelayInput
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Word separators").size(20).width(300),
+                        text_input(
+                            "[\" \", \",\", \".\", \"?\", \"!\", \"\\r\", \"\\n\", 22]",
+                            &word_separators
+                        )
+                        .on_input(Message::WordSeparatorsInput)
+                        .width(Length::Fixed(130.0))
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Backspace limit").size(20).width(300),
+                        number_input(
+                            if edited_config.backspace_limit.is_some() {
+                                edited_config.backspace_limit.unwrap()
+                            } else {
+                                5
+                            },
+                            100,
+                            Message::BackspaceLimitInput
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Apply patch").size(20).width(300),
+                        toggler(
+                            "".to_string(),
+                            if edited_config.apply_patch.is_some() {
+                                edited_config.apply_patch.clone().unwrap()
+                            } else {
+                                true
+                            },
+                            Message::ApplyPatchToggled
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Keyboard layout").size(20).width(300),
+                        text_input("us", &keyboard_layout)
+                            .on_input(Message::KeyboardLayoutInput)
+                            .width(Length::Fixed(130.0))
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Undo backspace").size(20).width(300),
+                        toggler(
+                            "".to_string(),
+                            if edited_config.undo_backspace.is_some() {
+                                edited_config.undo_backspace.clone().unwrap()
+                            } else {
+                                true
+                            },
+                            Message::UndoBackspaceToggled
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Show notifications").size(20).width(300),
+                        toggler(
+                            "".to_string(),
+                            if edited_config.show_notifications.is_some() {
+                                edited_config.show_notifications.clone().unwrap()
+                            } else {
+                                true
+                            },
+                            Message::ShowNotificationsToggled
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Show icon").size(20).width(300),
+                        toggler(
+                            "".to_string(),
+                            if edited_config.show_icon.is_some() {
+                                edited_config.show_icon.clone().unwrap()
+                            } else {
+                                true
+                            },
+                            Message::ShowIconToggled
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("X11 use xclip backend").size(20).width(300),
+                        toggler(
+                            "".to_string(),
+                            if edited_config.x11_use_xclip_backend.is_some() {
+                                edited_config.x11_use_xclip_backend.clone().unwrap()
+                            } else {
+                                false
+                            },
+                            Message::UseXclipBackendToggled
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Win32 exclude orphan events").size(20).width(300),
+                        toggler(
+                            "".to_string(),
+                            if edited_config.win32_exclude_orphan_events.is_some() {
+                                edited_config.win32_exclude_orphan_events.clone().unwrap()
+                            } else {
+                                true
+                            },
+                            Message::ExcludeOrphanEventsToggled
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                    row![
+                        text("Win32 keyboard layout cache interval")
+                            .size(20)
+                            .width(300),
+                        number_input(
+                            if edited_config.win32_keyboard_layout_cache_interval.is_some() {
+                                edited_config.win32_keyboard_layout_cache_interval.unwrap()
+                            } else {
+                                2000
+                            },
+                            10000,
+                            Message::KeyboardLayoutCacheIntervalInput
+                        )
+                        .width(Length::Shrink)
+                    ]
+                    .spacing(10)
+                    .align_items(Alignment::Center),
+                )
+                .spacing(8)
+                .padding([0, 0, 0, 10]);
+
+                let config_col =
+                    column![Scrollable::new(all_config_rows.padding([20, 20, 20, 40]))
+                        .id(SCROLLABLE_ID.clone())]
+                    .width(Length::Fill)
+                    .align_items(Alignment::Start);
+
                 let main_row = row![
                     nav_col,
                     match selected_nav.as_str() {
                         "eg-Settings" => settings_col,
-                        // "eg-Config" => config_col,
+                        "eg-Config" => config_col,
                         _ => open_file_col,
                     }
                 ];
