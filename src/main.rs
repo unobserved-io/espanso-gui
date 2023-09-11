@@ -707,6 +707,15 @@ impl Application for EGUI {
                     }
                 }
 
+                let open_file_col =
+                    column![
+                        Scrollable::new(all_trigger_replace_rows.padding([20, 20, 20, 40]))
+                            .id(SCROLLABLE_ID.clone())
+                    ]
+                    .width(Length::Fill)
+                    .align_items(Alignment::Start);
+
+                // -- CONFIG SECTION --
                 let paste_shortcut = if edited_config.paste_shortcut.is_some() {
                     edited_config.paste_shortcut.clone().unwrap()
                 } else {
@@ -746,14 +755,6 @@ impl Application for EGUI {
                 } else {
                     "us".to_string()
                 };
-
-                let open_file_col =
-                    column![
-                        Scrollable::new(all_trigger_replace_rows.padding([20, 20, 20, 40]))
-                            .id(SCROLLABLE_ID.clone())
-                    ]
-                    .width(Length::Fill)
-                    .align_items(Alignment::Start);
 
                 let all_config_rows = column!(
                     row![
