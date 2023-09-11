@@ -178,6 +178,7 @@ enum Message {
     SaveConfigPressed,
     UndoConfigPressed,
     ResetConfigPressed,
+    ConfigInfoPressed,
 }
 
 impl Application for EGUI {
@@ -499,6 +500,9 @@ impl Application for EGUI {
                     state.edited_config.toggle_key = Some("OFF".to_string());
                 }
                 Message::UndoConfigPressed => state.edited_config = state.original_config.clone(),
+                Message::ConfigInfoPressed => {
+                    open_link("https://espanso.org/docs/configuration/options/#options-reference")
+                }
                 _ => {}
             },
         }
@@ -761,7 +765,10 @@ impl Application for EGUI {
                             tooltip::Position::Bottom,
                         ),
                         Space::new(Length::Fill, 0),
-                        text("default.yml"),
+                        text("For information on each of these values, please vist"),
+                        button("espanso.org")
+                            .on_press(Message::ConfigInfoPressed)
+                            .style(theme::Button::Secondary),
                         Space::new(Length::Fill, 0),
                         Tooltip::new(
                             button(text(Icon::ArrowCounterclockwise).font(icons::ICON_FONT))
@@ -1401,6 +1408,12 @@ fn nav_button<'a>(
 fn is_valid_file_name(file_name: &str) -> bool {
     let pattern = Regex::new(r"^[\w\-. ]+$").unwrap();
     pattern.is_match(file_name)
+}
+
+fn open_link(url: &str) {
+    if let Err(err) = webbrowser::open(url) {
+        eprintln!("Failed to open link: {}", err);
+    }
 }
 
 mod style {
