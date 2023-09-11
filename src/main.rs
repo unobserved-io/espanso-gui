@@ -178,7 +178,7 @@ enum Message {
     SaveConfigPressed,
     UndoConfigPressed,
     ResetConfigPressed,
-    ConfigInfoPressed,
+    LaunchURL(String),
 }
 
 impl Application for EGUI {
@@ -286,6 +286,7 @@ impl Application for EGUI {
                             }
                         }
                         "eg-Settings" => state.selected_file = PathBuf::new(),
+                        "eg-About" => state.selected_file = PathBuf::new(),
                         _ => {
                             state.selected_file = PathBuf::from(
                                 espanso_loc + "/match/" + &state.selected_nav + ".yml",
@@ -500,9 +501,7 @@ impl Application for EGUI {
                     state.edited_config.toggle_key = Some("OFF".to_string());
                 }
                 Message::UndoConfigPressed => state.edited_config = state.original_config.clone(),
-                Message::ConfigInfoPressed => {
-                    open_link("https://espanso.org/docs/configuration/options/#options-reference")
-                }
+                Message::LaunchURL(value) => open_link(&value),
                 _ => {}
             },
         }
@@ -596,6 +595,7 @@ impl Application for EGUI {
                 nav_col = nav_col.push(yml_files_col);
                 nav_col = nav_col.push(nav_button("Config", "eg-Config", unsaved_changes));
                 nav_col = nav_col.push(nav_button("Settings", "eg-Settings", unsaved_changes));
+                nav_col = nav_col.push(nav_button("About", "eg-About", false));
 
                 let settings_col = column![
                     row![text("Settings").size(25)].padding([0, 0, 20, 0]),
@@ -768,7 +768,10 @@ impl Application for EGUI {
                         Space::new(Length::Fill, 0),
                         text("For information on each of these values, please vist"),
                         button("espanso.org")
-                            .on_press(Message::ConfigInfoPressed)
+                            .on_press(Message::LaunchURL(
+                                "https://espanso.org/docs/configuration/options/#options-reference"
+                                    .to_string()
+                            ))
                             .style(theme::Button::Secondary),
                         Space::new(Length::Fill, 0),
                         Tooltip::new(
@@ -1182,11 +1185,58 @@ impl Application for EGUI {
                     .width(Length::Fill)
                     .align_items(Alignment::Start);
 
+                let about_col = column![
+                    row![text("About").size(25)].padding([0, 0, 20, 20]),
+                    column![
+                        Space::new(Length::Fill, 0),
+                        row![
+                            button("espanso")
+                                .on_press(Message::LaunchURL("https://espanso.org".to_string()))
+                                .style(theme::Button::Secondary),
+                            text("was created by").size(20),
+                            button("Federico Terzi")
+                                .on_press(Message::LaunchURL(
+                                    "https://federicoterzi.com".to_string()
+                                ))
+                                .style(theme::Button::Secondary)
+                        ]
+                        .spacing(5),
+                        row![
+                            // TODO Add proper URL for espansoGUI
+                            button("espansoGUI")
+                                .on_press(Message::LaunchURL("https://github.com".to_string()))
+                                .style(theme::Button::Secondary),
+                            text("was created by").size(20),
+                            button("Ricky Kresslein")
+                                .on_press(Message::LaunchURL("https://kressle.in".to_string()))
+                                .style(theme::Button::Secondary)
+                        ]
+                        .spacing(5),
+                        row![
+                            text("It was built with").size(20),
+                            button("Rust")
+                                .on_press(Message::LaunchURL("https://www.rust-lang.org/".to_string()))
+                                .style(theme::Button::Secondary),
+                            text("and").size(20),
+                            button("Iced")
+                                .on_press(Message::LaunchURL("https://github.com/iced-rs/iced".to_string()))
+                                .style(theme::Button::Secondary),
+                        ]
+                        .spacing(5),
+                        row![
+                            text("espansoGUI is under active development and may not be perfect. Please backup your espanso directory before using this program to modify any files. Many of the issues of this app (i.e. slow performance when opening large yaml files) are related to Iced itself. Iced is relatively young and under active development, and as it gets better, so will espansoGUI.")
+                        ].padding([0,40,0,40]),
+                    ]
+                    .spacing(15)
+                    .align_items(Alignment::Center),
+                ];
+
                 let main_row = row![
                     nav_col,
                     match selected_nav.as_str() {
                         "eg-Settings" => settings_col,
                         "eg-Config" => config_col,
+                        "eg-About" => about_col,
                         _ => open_file_col,
                     }
                 ];
