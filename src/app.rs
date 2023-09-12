@@ -2,6 +2,7 @@ use crate::{
     egui_data::EGUIData,
     espanso_yaml::{EspansoYaml, YamlPairs},
     parse_config::ParsedConfig,
+    style,
 };
 
 use dirs::config_dir;
@@ -1485,16 +1486,16 @@ fn open_link(url: &str) {
     }
 }
 
-mod style {
-    use iced::widget::container;
-    use iced::Theme;
+// mod style {
+//     use iced::widget::container;
+//     use iced::Theme;
 
-    pub fn gray_background(theme: &Theme) -> container::Appearance {
-        let palette = theme.extended_palette();
+//     pub fn gray_background(theme: &Theme) -> container::Appearance {
+//         let palette = theme.extended_palette();
 
-        container::Appearance {
-            background: Some(palette.background.weak.color.into()),
-            ..Default::default()
-        }
-    }
-}
+//         container::Appearance {
+//             background: Some(palette.background.weak.color.into()),
+//             ..Default::default()
+//         }
+//     }
+// }

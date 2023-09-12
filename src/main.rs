@@ -2,6 +2,7 @@ mod app;
 mod egui_data;
 mod espanso_yaml;
 mod parse_config;
+mod style;
 
 use app::EGUI;
 use iced::{window, Application, Settings};
