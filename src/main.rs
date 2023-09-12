@@ -1214,11 +1214,7 @@ impl Application for EGUI {
                         ]
                         .spacing(5),
                         row![
-                            // TODO Add proper URL for espansoGUI
-                            button("espansoGUI")
-                                .on_press(Message::LaunchURL("https://github.com".to_string()))
-                                .style(theme::Button::Secondary),
-                            text("was created by").size(20),
+                            text("espansoGUI was created by").size(20),
                             button("Ricky Kresslein")
                                 .on_press(Message::LaunchURL("https://kressle.in".to_string()))
                                 .style(theme::Button::Secondary)
@@ -1471,7 +1467,6 @@ fn get_all_match_file_stems(match_dir: PathBuf) -> Vec<String> {
     match_file_stems
 }
 
-// TODO: Could remove 'a here and make nav_to a String
 fn nav_button<'a>(
     text: &'a str,
     destination: &'a str,
