@@ -1416,7 +1416,8 @@ fn espanso_is_running() -> bool {
         espanso_status_cmd_output =
             String::from_utf8(espanso_status_cmd.stderr).expect("Couldn't read espanso's status");
     } else {
-        espanso_status_cmd_output = String::from_utf8(espanso_status_cmd.stdout).expect("Couldn't read espanso's status");
+        espanso_status_cmd_output =
+            String::from_utf8(espanso_status_cmd.stdout).expect("Couldn't read espanso's status");
     }
 
     if espanso_status_cmd_output.starts_with("espanso is running")
