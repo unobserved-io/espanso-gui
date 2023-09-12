@@ -66,6 +66,7 @@ struct State {
     show_new_file_input: bool,
     new_file_name: String,
     file_name_change: String,
+    espanso_is_running: bool,
 }
 
 impl State {
@@ -102,6 +103,7 @@ impl State {
                 show_new_file_input: false,
                 new_file_name: String::new(),
                 file_name_change: String::new(),
+                espanso_is_running: espanso_is_running(),
             }
         } else {
             State {
@@ -122,6 +124,7 @@ impl State {
                 show_new_file_input: false,
                 new_file_name: String::new(),
                 file_name_change: String::new(),
+                espanso_is_running: espanso_is_running(),
             }
         }
     }
@@ -285,7 +288,10 @@ impl Application for EGUI {
                                 Err(e) => eprintln!("Error {:?}", e),
                             }
                         }
-                        "eg-Settings" => state.selected_file = PathBuf::new(),
+                        "eg-Settings" => {
+                            state.espanso_is_running = espanso_is_running();
+                            state.selected_file = PathBuf::new()
+                        }
                         "eg-About" => state.selected_file = PathBuf::new(),
                         _ => {
                             state.selected_file = PathBuf::from(
@@ -552,6 +558,7 @@ impl Application for EGUI {
                 show_new_file_input,
                 new_file_name,
                 file_name_change,
+                espanso_is_running,
                 ..
             }) => {
                 let unsaved_changes = edited_file.matches != original_file.matches;
@@ -600,7 +607,12 @@ impl Application for EGUI {
                 let settings_col = column![
                     row![text("Settings").size(25)].padding([0, 0, 20, 0]),
                     column![
-                        text("espanso is not running").size(20),
+                        text(if *espanso_is_running {
+                            "espanso is running"
+                        } else {
+                            "espanso is not running"
+                        })
+                        .size(20),
                         row![
                             text("Location").size(20),
                             Space::new(10, 0),
@@ -1391,6 +1403,29 @@ fn get_default_espanso_dir() -> String {
     }
 
     String::new()
+}
+
+fn espanso_is_running() -> bool {
+    // Get result of 'espanso status' command if possible
+    let espanso_status_cmd = p_cmd::new("espanso")
+        .arg("status")
+        .output()
+        .expect("failed to get espanso's status");
+    let mut espanso_status_cmd_output = String::new();
+    if espanso_status_cmd.stdout.is_empty() {
+        espanso_status_cmd_output =
+            String::from_utf8(espanso_status_cmd.stderr).expect("Couldn't read espanso's status");
+    } else {
+        String::from_utf8(espanso_status_cmd.stdout).expect("Couldn't read espanso's status");
+    }
+
+    if espanso_status_cmd_output == "espanso is running"
+        || espanso_status_cmd_output.starts_with("ESPANSO_CONFIG_DIR env variable was specified")
+    {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 fn valid_espanso_dir(selected_dir: String) -> bool {
