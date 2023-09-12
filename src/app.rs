@@ -1,10 +1,10 @@
-use crate::egui_data;
-use crate::espanso_yaml;
-use crate::parse_config;
+use crate::{
+    egui_data::EGUIData,
+    espanso_yaml::{EspansoYaml, YamlPairs},
+    parse_config::ParsedConfig,
+};
 
 use dirs::config_dir;
-use egui_data::EGUIData;
-use espanso_yaml::{EspansoYaml, YamlPairs};
 use home;
 use iced::theme::{self, Theme};
 use iced::widget::{
@@ -15,7 +15,6 @@ use iced::{alignment, font, Alignment, Application, Command, Element, Length, Re
 use iced_aw::graphics::icons;
 use iced_aw::{modal, number_input, Card, Icon};
 use once_cell::sync::Lazy;
-use parse_config::ParsedConfig;
 use regex::Regex;
 use rfd::FileDialog;
 use serde_yaml::{from_reader, to_writer};
