@@ -1411,15 +1411,15 @@ fn espanso_is_running() -> bool {
         .arg("status")
         .output()
         .expect("failed to get espanso's status");
-    let mut espanso_status_cmd_output = String::new();
+    let espanso_status_cmd_output: String;
     if espanso_status_cmd.stdout.is_empty() {
         espanso_status_cmd_output =
             String::from_utf8(espanso_status_cmd.stderr).expect("Couldn't read espanso's status");
     } else {
-        String::from_utf8(espanso_status_cmd.stdout).expect("Couldn't read espanso's status");
+        espanso_status_cmd_output = String::from_utf8(espanso_status_cmd.stdout).expect("Couldn't read espanso's status");
     }
 
-    if espanso_status_cmd_output == "espanso is running"
+    if espanso_status_cmd_output.starts_with("espanso is running")
         || espanso_status_cmd_output.starts_with("ESPANSO_CONFIG_DIR env variable was specified")
     {
         return true;
