@@ -179,7 +179,6 @@ impl Application for EGUI {
     type Theme = Theme;
 
     fn new(_: Self::Flags) -> (Self, Command<Self::Message>) {
-        // (EGUI::Loaded(State::new()), Command::none())
         (
             EGUI::Loading,
             Command::batch(vec![
