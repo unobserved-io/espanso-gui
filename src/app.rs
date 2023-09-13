@@ -1208,8 +1208,9 @@ impl Application for EGUI {
                     .width(Length::Fill)
                     .align_items(Alignment::Start);
 
+                // -- ABOUT SECTION --
                 let about_col = column![
-                    row![text("About").size(25)].padding([0, 0, 20, 20]),
+                    row![text("About").size(25)].padding([20, 0, 20, 20]),
                     column![
                         Space::new(Length::Fill, 0),
                         row![
@@ -1248,7 +1249,16 @@ impl Application for EGUI {
                     ]
                     .spacing(15)
                     .align_items(Alignment::Center),
-                ];
+                    row![text("Known Issues").size(20)].padding([0, 0, 0, 20]),
+                    column![
+                        text("- Loading large files (100+ lines) is slow (can take several seconds)").size(18),
+                    ].padding([0, 0, 0, 20]),
+                    row![text("Upcoming Features").size(20)].padding([0, 0, 0, 20]),
+                    column![
+                        text("- Ability to search YAML files").size(18),
+                        text("- Ability to create backups of the espanso directory").size(18),
+                    ].padding([0, 0, 0, 20]),
+                ].spacing(15);
 
                 let main_row = row![
                     nav_col,
