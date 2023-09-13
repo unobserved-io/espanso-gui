@@ -1265,10 +1265,10 @@ impl Application for EGUI {
                     ]
                     .spacing(15)
                     .align_items(Alignment::Center),
-                    row![text("Known Issues").size(20)].padding([0, 0, 0, 20]),
-                    column![
-                        text("- Loading large files (100+ lines) is slow (can take several seconds)").size(18),
-                    ].padding([0, 0, 0, 20]),
+                    // row![text("Known Issues").size(20)].padding([0, 0, 0, 20]),
+                    // column![
+                    //     text("- ").size(18),
+                    // ].padding([0, 0, 0, 20]),
                     row![text("Upcoming Features").size(20)].padding([0, 0, 0, 20]),
                     column![
                         text("- Ability to search YAML files").size(18),
