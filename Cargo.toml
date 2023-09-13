@@ -1,7 +1,29 @@
 [package]
 name = "espanso_gui"
+description = "GUI interface for espanso."
 version = "0.1.0"
 edition = "2021"
+
+[package.metadata.bundle]
+name = "espansoGUI"
+identifier = "io.unobserved.espansogui"
+icon = [
+    "assets/icon_set/espansoGUI-16x16.png",
+    "assets/icon_set/espansoGUI-32x32.png",
+    "assets/icon_set/espansoGUI-64x64.png",
+    "assets/icon_set/espansoGUI-128x128.png",
+    "assets/icon_set/espansoGUI-128x128@2x.png",
+    "assets/icon_set/espansoGUI-256x256.png",
+    "assets/icon_set/espansoGUI-256x256@2x.png",
+    "assets/icon_set/espansoGUI-512x512.png",
+    "assets/icon_set/espansoGUI-512x512@2x.png",
+]
+copyright = "Copyright (c) Ricky Kresslein 2023. All rights reserved."
+category = "public.app-category.productivity"
+short_description = "GUI interface for espanso."
+long_description = """
+A Rust/Iced based GUI frontend for the espanso text expander.
+"""
 
 [dependencies]
 anyhow = "1.0"
