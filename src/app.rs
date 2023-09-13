@@ -599,6 +599,7 @@ impl Application for EGUI {
                 nav_col = nav_col.push(nav_button("Settings", "eg-Settings", unsaved_changes));
                 nav_col = nav_col.push(nav_button("About", "eg-About", false));
 
+                // -- SETTINGS SECTION --
                 let settings_col = column![
                     row![text("Settings").size(25)].padding([0, 0, 20, 0]),
                     column![
@@ -636,6 +637,7 @@ impl Application for EGUI {
                 .width(Length::Fill)
                 .align_items(Alignment::Start);
 
+                // -- FILE SECTION --
                 let mut all_trigger_replace_rows: Column<'_, Message, Renderer> =
                     Column::new().spacing(8).padding([0, 0, 0, 10]);
                 if !selected_nav.is_empty()
