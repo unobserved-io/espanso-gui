@@ -170,6 +170,7 @@ pub enum Message {
     UndoConfigPressed,
     ResetConfigPressed,
     LaunchURL(String),
+    DeleteRowPressed(usize),
 }
 
 impl Application for EGUI {
@@ -495,6 +496,9 @@ impl Application for EGUI {
                 }
                 Message::UndoConfigPressed => state.edited_config = state.original_config.clone(),
                 Message::LaunchURL(value) => open_link(&value),
+                Message::DeleteRowPressed(index) => {
+                    state.edited_file.matches.remove(index);
+                }
                 _ => {}
             },
         }
@@ -671,7 +675,13 @@ impl Application for EGUI {
                     for i in 0..edited_file.matches.len() {
                         all_trigger_replace_rows = all_trigger_replace_rows.push(
                             Container::new(
-                                row![column![
+                                column![
+                                    row![
+                                        Space::new(Length::Fill, 0),
+                                        button(text(Icon::Trash).font(icons::ICON_FONT))
+                                            .on_press(Message::DeleteRowPressed(i))
+                                            .style(theme::Button::Secondary),
+                                    ],
                                     row![
                                         text("Trigger:").size(20).width(90),
                                         text_input(
@@ -697,8 +707,7 @@ impl Application for EGUI {
                                     .spacing(10)
                                     .align_items(Alignment::Center)
                                 ]
-                                .spacing(8)]
-                                .spacing(10)
+                                .spacing(8)
                                 .padding(20),
                             )
                             .style(style::gray_background),
