@@ -633,7 +633,7 @@ impl Application for EGUI {
                         button("Save").on_press(Message::SettingsSavePressed)
                     ],
                 ]
-                .padding([20, 20, 20, 40])
+                .padding([20, 20, 20, 20])
                 .width(Length::Fill)
                 .align_items(Alignment::Start);
 
