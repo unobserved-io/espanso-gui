@@ -679,40 +679,49 @@ impl Application for EGUI {
                     for i in 0..edited_file.matches.len() {
                         all_trigger_replace_rows = all_trigger_replace_rows.push(
                             Container::new(
-                                column![
-                                    row![
-                                        Space::new(Length::Fill, 0),
-                                        button(text(Icon::Trash).font(icons::ICON_FONT))
-                                            .on_press(Message::DeleteRowPressed(i))
-                                            .style(theme::Button::Secondary),
-                                    ],
-                                    row![
-                                        text("Trigger:").size(20).width(90),
-                                        text_input(
-                                            &edited_file.matches[i].trigger,
-                                            &edited_file.matches[i].trigger
-                                        )
-                                        .on_input(move |s| {
-                                            Message::YamlInputChanged(s, i, "trigger".to_string())
-                                        })
-                                        .size(20)
-                                    ],
-                                    row![
-                                        text("Replace:").size(20).width(75),
-                                        text_input(
-                                            &edited_file.matches[i].replace,
-                                            &edited_file.matches[i].replace
-                                        )
-                                        .on_input(move |s| {
-                                            Message::YamlInputChanged(s, i, "replace".to_string())
-                                        })
-                                        .size(20)
+                                row![
+                                    button(text(Icon::Trash).font(icons::ICON_FONT))
+                                        .on_press(Message::DeleteRowPressed(i))
+                                        .style(theme::Button::Text),
+                                    column![
+                                        row![
+                                            text("Trigger:").size(20).width(90),
+                                            text_input(
+                                                &edited_file.matches[i].trigger,
+                                                &edited_file.matches[i].trigger
+                                            )
+                                            .on_input(move |new_string| {
+                                                Message::YamlInputChanged(
+                                                    new_string,
+                                                    i,
+                                                    "trigger".to_string(),
+                                                )
+                                            })
+                                            .size(20)
+                                        ]
+                                        .align_items(Alignment::Center),
+                                        row![
+                                            text("Replace:").size(20).width(90),
+                                            text_input(
+                                                &edited_file.matches[i].replace,
+                                                &edited_file.matches[i].replace
+                                            )
+                                            .on_input(move |new_string| {
+                                                Message::YamlInputChanged(
+                                                    new_string,
+                                                    i,
+                                                    "replace".to_string(),
+                                                )
+                                            })
+                                            .size(20)
+                                        ]
+                                        .align_items(Alignment::Center)
                                     ]
-                                    .spacing(10)
-                                    .align_items(Alignment::Center)
+                                    .spacing(8),
                                 ]
-                                .spacing(8)
-                                .padding(20),
+                                .padding(20)
+                                .align_items(Alignment::Center)
+                                .spacing(12),
                             )
                             .style(style::gray_background),
                         );
