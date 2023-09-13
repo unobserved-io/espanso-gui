@@ -255,6 +255,10 @@ impl Application for EGUI {
                 Message::NavigateTo(value) => {
                     state.selected_nav = value.clone();
                     let espanso_loc = state.espanso_loc.clone();
+                    // Reset files to defaults
+                    state.original_file = EspansoYaml::default();
+                    state.edited_file = EspansoYaml::default();
+
                     match value.as_str() {
                         "eg-Config" => {
                             state.selected_file =
