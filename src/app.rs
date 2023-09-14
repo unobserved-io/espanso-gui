@@ -1246,7 +1246,7 @@ impl Application for EGUI {
                         ]
                         .spacing(5),
                         row![
-                            text("espansoGUI is under active development and may not be perfect. Please backup your espanso directory before using this program to modify any files. Many of the issues of this app (i.e. slow performance when opening large yaml files) are related to Iced itself. Iced is relatively young and under active development, and as it gets better, so will espansoGUI.")
+                            text("espansoGUI is under active development and may not be perfect. Please backup your espanso directory before using this program to modify any files.")
                         ].padding([0,40,0,40]),
                     ]
                     .spacing(15)
