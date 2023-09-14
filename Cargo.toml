@@ -8,15 +8,15 @@ edition = "2021"
 name = "espansoGUI"
 identifier = "io.unobserved.espansogui"
 icon = [
-    "assets/icon_set/espansoGUI-16x16.png",
-    "assets/icon_set/espansoGUI-32x32.png",
-    "assets/icon_set/espansoGUI-64x64.png",
-    "assets/icon_set/espansoGUI-128x128.png",
-    "assets/icon_set/espansoGUI-128x128@2x.png",
-    "assets/icon_set/espansoGUI-256x256.png",
-    "assets/icon_set/espansoGUI-256x256@2x.png",
-    "assets/icon_set/espansoGUI-512x512.png",
-    "assets/icon_set/espansoGUI-512x512@2x.png",
+    "assets/mac_icon_set/espansoGUI-Mac-Icon-16x16.png",
+    "assets/mac_icon_set/espansoGUI-Mac-Icon-32x32.png",
+    "assets/mac_icon_set/espansoGUI-Mac-Icon-64x64.png",
+    "assets/mac_icon_set/espansoGUI-Mac-Icon-128x128.png",
+    "assets/mac_icon_set/espansoGUI-Mac-Icon-128x128@2x.png",
+    "assets/mac_icon_set/espansoGUI-Mac-Icon-256x256.png",
+    "assets/mac_icon_set/espansoGUI-Mac-Icon-256x256@2x.png",
+    "assets/mac_icon_set/espansoGUI-Mac-Icon-512x512.png",
+    "assets/mac_icon_set/espansoGUI-Mac-Icon-512x512@2x.png",
 ]
 copyright = "Copyright (c) Ricky Kresslein 2023. All rights reserved."
 category = "public.app-category.productivity"
