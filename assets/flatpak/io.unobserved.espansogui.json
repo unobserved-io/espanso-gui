@@ -39,8 +39,9 @@
       "sources": [
         {
           "type": "dir",
-          "path": "./"
-        }
+          "path": "../.."
+        },
+        "generated-sources.json"
       ]
     }
   ]
