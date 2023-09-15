@@ -32,9 +32,9 @@
         "cargo --offline build --release --verbose",
         "install -Dm644 ./assets/linux/io.unobserved.espansogui-128x128.png /app/share/icons/hicolor/128x128/apps/io.unobserved.espansogui.png",
         "install -Dm644 ./assets/linux/io.unobserved.espansogui-256x256.png /app/share/icons/hicolor/256x256/apps/io.unobserved.espansogui.png",
-        "install -Dm644 ./assets/linux/org.squidowl.halloy.appdata.xml /app/share/metainfo/org.squidowl.halloy.appdata.xml",
-        "install -Dm644 ./assets/linux/org.squidowl.halloy.desktop /app/share/applications/org.squidowl.halloy.desktop",
-        "install -Dm755 ./target/release/halloy -t /app/bin/"
+        "install -Dm644 ./assets/linux/io.unobserved.espansogui.appdata.xml /app/share/metainfo/io.unobserved.espansogui.appdata.xml",
+        "install -Dm644 ./assets/linux/io.unobserved.espansogui.desktop /app/share/applications/io.unobserved.espansogui.desktop",
+        "install -Dm755 ./target/release/espansogui -t /app/bin/"
       ],
       "sources": [
         {
