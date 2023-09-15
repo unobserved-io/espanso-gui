@@ -35,6 +35,7 @@ no_llvm_build
 /llvm/
 /mingw-build/
 build/
+/build-dir/
 !/compiler/rustc_mir_build/src/build/
 /build-rust-analyzer/
 /dist/
