@@ -1,6 +1,7 @@
 [package]
 name = "espanso_gui"
 description = "GUI interface for espanso."
+authors = ["Ricky Kresslein <ricky@unobserved.io>" ]
 version = "0.1.0"
 edition = "2021"
 
