@@ -3,7 +3,7 @@ name = "espanso_gui"
 description = "GUI interface for espanso."
 authors = ["Ricky Kresslein <ricky@unobserved.io>" ]
 license = "GPL-3.0-or-later"
-version = "0.1.0"
+version = "2023.9.15"
 edition = "2021"
 
 [package.metadata.bundle]

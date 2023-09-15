@@ -636,7 +636,7 @@ dependencies = [
 
 [[package]]
 name = "espanso_gui"
-version = "0.1.0"
+version = "2023.9.15"
 dependencies = [
  "anyhow",
  "dirs",
