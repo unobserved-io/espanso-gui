@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=espansoGUI
+Comment=GUI frontend for espanso
+Type=Application
+Keywords=expand;replace;text
+Categories=Utility
+Exec=espansogui
+Icon=io.unobserved.espansogui
+Terminal=false
