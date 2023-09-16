@@ -30,6 +30,7 @@ no_llvm_build
 
 ## Build
 /assets/flatpak/cargo-sources.json
+/.flatpak-builder
 /dl/
 /doc/
 /inst/
