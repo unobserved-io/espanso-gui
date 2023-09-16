@@ -6,25 +6,25 @@
   "sdk-extensions": [
     "org.freedesktop.Sdk.Extension.rust-stable"
   ],
-  "command": "espansogui",
+  "command": "espanso-gui",
   "finish-args": [
     "--share=ipc",
     "--socket=fallback-x11",
     "--device=dri",
     "--socket=wayland",
-    "--filesystem=xdg-xdg-config/espanso"
+    "--filesystem=xdg-config/espanso"
   ],
   "build-options": {
     "append-path": "/usr/lib/sdk/rust-stable/bin"
   },
   "modules": [
     {
-      "name": "espansogui",
+      "name": "espanso-gui",
       "builddir": true,
       "buildsystem": "simple",
       "build-options": {
         "env": {
-          "CARGO_HOME": "/run/build/espansogui/cargo"
+          "CARGO_HOME": "/run/build/espanso-gui/cargo"
         }
       },
       "build-commands": [
@@ -34,14 +34,14 @@
         "install -Dm644 ./assets/linux/io.unobserved.espansogui-256x256.png /app/share/icons/hicolor/256x256/apps/io.unobserved.espansogui.png",
         "install -Dm644 ./assets/linux/io.unobserved.espansogui.appdata.xml /app/share/metainfo/io.unobserved.espansogui.appdata.xml",
         "install -Dm644 ./assets/linux/io.unobserved.espansogui.desktop /app/share/applications/io.unobserved.espansogui.desktop",
-        "install -Dm755 ./target/release/espansogui -t /app/bin/"
+        "install -Dm755 ./target/release/espanso-gui -t /app/bin/"
       ],
       "sources": [
         {
           "type": "dir",
           "path": "../.."
         },
-        "generated-sources.json"
+        "cargo-sources.json"
       ]
     }
   ]

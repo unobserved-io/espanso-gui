@@ -1,5 +1,5 @@
 [package]
-name = "espanso_gui"
+name = "espanso-gui"
 description = "GUI interface for espanso."
 authors = ["Ricky Kresslein <ricky@unobserved.io>" ]
 license = "GPL-3.0-or-later"
