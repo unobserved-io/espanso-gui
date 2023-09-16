@@ -2,7 +2,7 @@
 <component type="desktop-application">
   <content_rating type="oars-1.1" />
   <id>io.unobserved.espansogui</id>
-  <metadata_license>GPL-3.0-or-later</metadata_license>
+  <metadata_license>MIT</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
   <name>espansoGUI</name>
   <summary>GUI interface for espanso</summary>
@@ -15,11 +15,12 @@
 
   <launchable type="desktop-id">io.unobserved.espansogui.desktop</launchable>
 
-  <url type="homepage">https://github.com/rickykresslein/espanso</url>
-  <url type="bugtracker">https://github.com/rickykresslein/espanso</url>
+  <!--<url type="homepage">https://github.com/rickykresslein/espanso</url>
+  <url type="bugtracker">https://github.com/rickykresslein/espanso</url>-->
 
   <developer_name>Ricky Kresslein</developer_name>
 
   <releases>
     <release version="2023.9.15" date="2023-09-15" />
   </releases>
+</component>

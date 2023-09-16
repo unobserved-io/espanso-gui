@@ -15,33 +15,23 @@
     "--filesystem=xdg-config/espanso"
   ],
   "build-options": {
-    "append-path": "/usr/lib/sdk/rust-stable/bin"
+    "append-path": "/usr/lib/sdk/rust-stable/bin",
+    "build-args" : [
+      "--share=network"
+    ],
+    "env": {
+      "CARGO_HOME": "/run/build/espanso-gui/cargo"
+    }
   },
   "modules": [
     {
       "name": "espanso-gui",
-      "builddir": true,
-      "buildsystem": "simple",
-      "build-options": {
-        "env": {
-          "CARGO_HOME": "/run/build/espanso-gui/cargo"
-        }
-      },
-      "build-commands": [
-        "cargo --offline fetch --manifest-path Cargo.toml --verbose",
-        "cargo --offline build --release --verbose",
-        "install -Dm644 ./assets/linux/io.unobserved.espansogui-128x128.png /app/share/icons/hicolor/128x128/apps/io.unobserved.espansogui.png",
-        "install -Dm644 ./assets/linux/io.unobserved.espansogui-256x256.png /app/share/icons/hicolor/256x256/apps/io.unobserved.espansogui.png",
-        "install -Dm644 ./assets/linux/io.unobserved.espansogui.appdata.xml /app/share/metainfo/io.unobserved.espansogui.appdata.xml",
-        "install -Dm644 ./assets/linux/io.unobserved.espansogui.desktop /app/share/applications/io.unobserved.espansogui.desktop",
-        "install -Dm755 ./target/release/espanso-gui -t /app/bin/"
-      ],
+      "buildsystem": "meson",
       "sources": [
         {
           "type": "dir",
           "path": "../.."
-        },
-        "cargo-sources.json"
+        }
       ]
     }
   ]
