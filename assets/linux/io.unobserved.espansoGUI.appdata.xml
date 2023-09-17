@@ -1,26 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<component type="desktop-application">
-  <content_rating type="oars-1.1" />
-  <id>io.unobserved.espansogui</id>
-  <metadata_license>MIT</metadata_license>
-  <project_license>GPL-3.0-or-later</project_license>
-  <name>espansoGUI</name>
-  <summary>GUI interface for espanso</summary>
-  <description>
-    <p>
-      espansoGUI is an open-source GUI interface for expanso written in Rust, with the Iced library.
-      It aims to make espanso slightly easier and faster to use.
-    </p>
-  </description>
+    <component type="desktop-application">
+        <content_rating type="oars-1.1" />
+        <id>io.unobserved.espansogui</id>
+        <metadata_license>CC0-1.0</metadata_license>
+        <project_license>GPL-3.0-or-later</project_license>
+        <name>espansoGUI</name>
+        <summary>GUI interface for espanso</summary>
+        <description>
+            <p>
+                espansoGUI is an open-source GUI interface for expanso written in Rust, with the Iced library.
+                It aims to make espanso slightly easier and faster to use.
+            </p>
+        </description>
 
-  <launchable type="desktop-id">io.unobserved.espansogui.desktop</launchable>
+        <launchable type="desktop-id">io.unobserved.espansogui.desktop</launchable>
 
-  <url type="homepage">https://github.com/Unobserved-io/espanso-gui</url>
-  <url type="bugtracker">https://github.com/Unobserved-io/espanso-gui/issues</url>
+        <url type="homepage">https://github.com/unobserved-io/espanso-gui</url>
+        <url type="bugtracker">https://github.com/unobserved-io/espanso-gui/issues</url>
+        <url type="donation">https://www.paypal.com/donate/?hosted_button_id=TLYY8YZ424VRL</url>
 
-  <developer_name>Ricky Kresslein</developer_name>
+        <developer_name>Ricky Kresslein</developer_name>
+        <update_contact>espansogui@unobserved.io</update_contact>
 
-  <releases>
-    <release version="2023.9.15" date="2023-09-15" />
-  </releases>
+        <screenshots>
+            <screenshot type="default">
+                <image>https://github.com/unobserved-io/espanso-gui/raw/main/assets/screenshots/espanso-gui-2023.09.15-match.png</image>
+            </screenshot>
+            <screenshot>
+                <image>https://github.com/unobserved-io/espanso-gui/raw/main/assets/screenshots/espanso-gui-2023.09.15-config.png</image>
+            </screenshot>
+            <screenshot>
+                <image>https://github.com/unobserved-io/espanso-gui/raw/main/assets/screenshots/espanso-gui-2023.09.15-settings.png</image>
+            </screenshot>
+        </screenshots>
+
+        <releases>
+            <release version="2023.09.15" date="2023-09-15" />
+                <description>
+                    <p>Initial release!</p>
+                </description>
+            </release>
+        </releases>
 </component>
