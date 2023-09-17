@@ -1,13 +1,7 @@
 # espansoGUI
 
 A GUI interface to [espanso](https://espanso.org) created with [Rust](https://www.rust-lang.org/) & [Iced](https://github.com/iced-rs/iced).
-<style>
-      .drop-shadow {
-        width: 500px;
-        -webkit-filter: drop-shadow(5px 5px 5px #666666);
-        filter: drop-shadow(5px 5px 5px #666666);
-      }
-</style>
+
 <p align="center">
     <img class="drop-shadow" width="500px" src="https://github.com/unobserved-io/espanso-gui/raw/main/assets/screenshots/espanso-gui-2023.09.15-match.png" alt="espansoGUI screenshot"/>
 </p>
