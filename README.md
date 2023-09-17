@@ -3,7 +3,7 @@
 A GUI interface to [espanso](https://espanso.org) created with [Rust](https://www.rust-lang.org/) & [Iced](https://github.com/iced-rs/iced).
 <style>
       .drop-shadow {
-        width: 500px;
+        width: 350px;
         -webkit-filter: drop-shadow(5px 5px 5px #666666);
         filter: drop-shadow(5px 5px 5px #666666);
       }
