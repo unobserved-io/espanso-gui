@@ -13,7 +13,7 @@
             </p>
         </description>
 
-        <launchable type="desktop-id">io.unobserved.espansogui.desktop</launchable>
+        <launchable type="desktop-id">io.unobserved.espansoGUI.desktop</launchable>
 
         <url type="homepage">https://github.com/unobserved-io/espanso-gui</url>
         <url type="bugtracker">https://github.com/unobserved-io/espanso-gui/issues</url>
