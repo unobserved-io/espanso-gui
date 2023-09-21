@@ -8,7 +8,7 @@
         <summary>GUI interface for espanso</summary>
         <description>
             <p>
-                espansoGUI is an open-source GUI interface for expanso written in Rust, with the Iced library.
+                espansoGUI is an open-source GUI interface for espanso written in Rust, with the Iced library.
                 It aims to make espanso slightly easier and faster to use.
             </p>
         </description>
