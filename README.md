@@ -1,6 +1,6 @@
 # espansoGUI
 
-A GUI interface to [espanso](https://espanso.org) created with [Rust](https://www.rust-lang.org/) & [Iced](https://github.com/iced-rs/iced).
+A GUI for [espanso](https://espanso.org) created with [Rust](https://www.rust-lang.org/) & [Iced](https://github.com/iced-rs/iced).
 
 <p align="center">
     <img class="drop-shadow" width="500px" src="https://github.com/unobserved-io/espanso-gui/raw/main/assets/screenshots/espanso-gui-2023.09.15-match.png" alt="espansoGUI screenshot"/>
