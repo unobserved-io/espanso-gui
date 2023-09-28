@@ -34,7 +34,6 @@ use iced_aw::{modal, number_input, Card, Icon};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rfd::FileDialog;
-use serde_yaml::{from_reader, to_writer};
 use std::collections::BTreeMap;
 use std::env;
 use std::fs::{create_dir, remove_file, rename, File, OpenOptions};
@@ -299,6 +298,9 @@ impl Application for EGUI {
                                 espanso_loc + "/match/" + &state.selected_nav + ".yml",
                             );
                             state.original_file = read_to_triggers(state.selected_file.clone());
+                            // for of_match in state.original_file.matches.clone() {
+                            //     if !of_match.trigger.is_empty() && !of_match.replace.is_empty() {}
+                            // }
                             state.edited_file = state.original_file.clone();
                             state.file_name_change = state.selected_nav.clone();
                         }
@@ -1364,8 +1366,16 @@ fn write_egui_data(data: &EGUIData) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn read_to_triggers(path: PathBuf) -> EspansoYaml {
-    let file = File::open(path).expect("Could not open file.");
-    from_reader(file).expect("Could not read values.")
+    let file = File::open(path.clone()).expect("Could not open file.");
+    let yaml: EspansoYaml = serde_yaml::from_reader(file).expect("Could not read values.");
+    let filtered_yaml: Vec<YamlPairs> = yaml
+        .matches
+        .into_iter()
+        .filter(|pair| !pair.trigger.is_empty() && !pair.replace.is_empty())
+        .collect();
+    EspansoYaml {
+        matches: filtered_yaml,
+    }
 }
 
 fn write_from_triggers(path: PathBuf, edited_file: EspansoYaml) {
@@ -1375,7 +1385,7 @@ fn write_from_triggers(path: PathBuf, edited_file: EspansoYaml) {
         .create(true)
         .open(path)
         .expect("Couldn't open file");
-    to_writer(file, &edited_file).unwrap();
+    serde_yaml::to_writer(file, &edited_file).unwrap();
 }
 
 fn create_new_yml_file(file_path: PathBuf) {
@@ -1385,7 +1395,7 @@ fn create_new_yml_file(file_path: PathBuf) {
         .create(true)
         .open(file_path)
         .expect("Couldn't open file");
-    to_writer(file, &EspansoYaml::default()).unwrap();
+    serde_yaml::to_writer(file, &EspansoYaml::default()).unwrap();
 }
 
 fn overwrite_config(path: &Path, config: &ParsedConfig) {
@@ -1395,7 +1405,7 @@ fn overwrite_config(path: &Path, config: &ParsedConfig) {
         .create(true)
         .open(path)
         .expect("Couldn't write config to file");
-    to_writer(file, config).unwrap();
+    serde_yaml::to_writer(file, config).unwrap();
 }
 
 fn get_default_espanso_dir() -> String {
