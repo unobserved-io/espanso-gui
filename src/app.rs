@@ -739,6 +739,20 @@ impl Application for EGUI {
                             .style(style::gray_background),
                         );
                     }
+                    if edited_file.matches.len() > 2 {
+                        all_trigger_replace_rows = all_trigger_replace_rows.push(
+                            row![
+                                Space::new(Length::Fill, 0),
+                                button("Save").on_press_maybe(
+                                    match original_file.matches == edited_file.matches {
+                                        true => None,
+                                        false => Some(Message::SaveFilePressed),
+                                    },
+                                )
+                            ]
+                            .align_items(Alignment::Center),
+                        );
+                    }
                 }
 
                 let open_file_col =
