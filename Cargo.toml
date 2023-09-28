@@ -29,6 +29,7 @@ A Rust/Iced based GUI frontend for the espanso text expander.
 
 [dependencies]
 anyhow = "1.0"
+dark-light = "1.0"
 dirs = "5.0"
 home = "0.5"
 iced = "0.10"

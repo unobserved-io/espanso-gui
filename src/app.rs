@@ -204,6 +204,13 @@ impl Application for EGUI {
         String::from("espansoGUI")
     }
 
+    fn theme(&self) -> Theme {
+        match dark_light::detect() {
+            dark_light::Mode::Light | dark_light::Mode::Default => Theme::Light,
+            dark_light::Mode::Dark => Theme::Dark,
+        }
+    }
+
     fn update(&mut self, message: Message) -> Command<Message> {
         match self {
             EGUI::Loading => {
