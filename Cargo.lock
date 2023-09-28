@@ -900,7 +900,7 @@ dependencies = [
 
 [[package]]
 name = "espanso-gui"
-version = "2023.9.15"
+version = "23.10.0"
 dependencies = [
  "anyhow",
  "dark-light",
