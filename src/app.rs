@@ -743,6 +743,7 @@ impl Application for EGUI {
                         all_trigger_replace_rows = all_trigger_replace_rows.push(
                             row![
                                 Space::new(Length::Fill, 0),
+                                button("+ Add").on_press(Message::AddPairPressed),
                                 button("Save").on_press_maybe(
                                     match original_file.matches == edited_file.matches {
                                         true => None,
@@ -750,6 +751,7 @@ impl Application for EGUI {
                                     },
                                 )
                             ]
+                            .spacing(10)
                             .align_items(Alignment::Center),
                         );
                     }
