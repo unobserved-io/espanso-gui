@@ -59,6 +59,7 @@ pub struct State {
     edited_file: EspansoYaml,
     original_config: ParsedConfig,
     edited_config: ParsedConfig,
+    temp_word_separators: String,
     match_files: Vec<String>,
     show_modal: bool,
     modal_title: String,
@@ -96,6 +97,7 @@ impl State {
                 },
                 original_config: ParsedConfig::default(),
                 edited_config: ParsedConfig::default(),
+                temp_word_separators: String::new(),
                 show_modal: false,
                 modal_title: String::new(),
                 modal_description: String::new(),
@@ -115,6 +117,7 @@ impl State {
                 edited_file: EspansoYaml::default(),
                 original_config: ParsedConfig::default(),
                 edited_config: ParsedConfig::default(),
+                temp_word_separators: String::new(),
                 match_files: Vec::new(),
                 show_modal: false,
                 modal_title: String::new(),
@@ -294,6 +297,18 @@ impl Application for EGUI {
                                     }
 
                                     state.edited_config = state.original_config.clone();
+                                    state.temp_word_separators = if state
+                                        .edited_config
+                                        .word_separators
+                                        .is_some()
+                                    {
+                                        serde_json::to_string(
+                                            &state.edited_config.word_separators.clone().unwrap(),
+                                        )
+                                        .unwrap_or_default()
+                                    } else {
+                                        format!("{:?}", get_default_word_separators())
+                                    };
                                 }
                                 Err(e) => eprintln!("Error {:?}", e),
                             }
@@ -305,9 +320,6 @@ impl Application for EGUI {
                                 espanso_loc + "/match/" + &state.selected_nav + ".yml",
                             );
                             state.original_file = read_to_triggers(state.selected_file.clone());
-                            // for of_match in state.original_file.matches.clone() {
-                            //     if !of_match.trigger.is_empty() && !of_match.replace.is_empty() {}
-                            // }
                             state.edited_file = state.original_file.clone();
                             state.file_name_change = state.selected_nav.clone();
                         }
@@ -477,8 +489,7 @@ impl Application for EGUI {
                     state.edited_config.evdev_modifier_delay = Some(value)
                 }
                 Message::WordSeparatorsInput(value) => {
-                    state.edited_config.word_separators =
-                        Some(serde_json::from_str(&value).unwrap())
+                    state.temp_word_separators = value;
                 }
                 Message::BackspaceLimitInput(value) => {
                     state.edited_config.backspace_limit = Some(value)
@@ -506,17 +517,68 @@ impl Application for EGUI {
                     state.edited_config.win32_keyboard_layout_cache_interval = Some(value)
                 }
                 Message::SaveConfigPressed => {
+                    let word_separators_changed = state.temp_word_separators.to_owned()
+                        != if state.edited_config.word_separators.is_some() {
+                            serde_json::to_string(
+                                &state.edited_config.word_separators.clone().unwrap(),
+                            )
+                            .unwrap_or_default()
+                        } else {
+                            format!("{:?}", get_default_word_separators())
+                        };
+                    if word_separators_changed {
+                        let mut corrected_string = state.temp_word_separators.clone();
+                        if !corrected_string.contains("\\\\r") {
+                            corrected_string = corrected_string.replace("\\r", "\\\\r");
+                        }
+
+                        if !corrected_string.contains("\\\\n") {
+                            corrected_string = corrected_string.replace("\\n", "\\\\n");
+                        }
+
+                        if !corrected_string.contains("\\\\u0016") {
+                            corrected_string = corrected_string.replace("\\u{16}", "\\\\u0016");
+                        }
+
+                        match serde_json::from_str::<Vec<String>>(&corrected_string) {
+                            Ok(value) => {
+                                state.edited_config.word_separators = Some(value);
+                            }
+                            Err(err) => eprintln!("Couldn't parse WS: {}", err),
+                        };
+                    }
+
                     overwrite_config(&state.selected_file.clone(), &state.edited_config.clone());
                     state.original_config = state.edited_config.clone();
+                    state.temp_word_separators = if state.edited_config.word_separators.is_some() {
+                        serde_json::to_string(&state.edited_config.word_separators.clone().unwrap())
+                            .unwrap_or_default()
+                    } else {
+                        format!("{:?}", get_default_word_separators())
+                    };
                 }
                 Message::ResetConfigPressed => {
                     state.edited_config = ParsedConfig::default();
+                    state.temp_word_separators = if state.edited_config.word_separators.is_some() {
+                        serde_json::to_string(&state.edited_config.word_separators.clone().unwrap())
+                            .unwrap_or_default()
+                    } else {
+                        format!("{:?}", get_default_word_separators())
+                    };
                     // Reset combo list prefs to default to prevent it
                     // loooking like changes were made when they weren't
                     state.edited_config.backend = Some("Auto".to_string());
                     state.edited_config.toggle_key = Some("OFF".to_string());
                 }
-                Message::UndoConfigPressed => state.edited_config = state.original_config.clone(),
+                Message::UndoConfigPressed => {
+                    state.edited_config = state.original_config.clone();
+                    state.temp_word_separators = if state.edited_config.word_separators.is_some() {
+                        serde_json::to_string(&state.edited_config.word_separators.clone().unwrap())
+                            .unwrap_or_default()
+                    } else {
+                        format!("{:?}", get_default_word_separators())
+                    };
+                }
                 Message::LaunchURL(value) => open_link(&value),
                 Message::DeleteRowPressed(index) => {
                     state.edited_file.matches.remove(index);
@@ -563,6 +625,7 @@ impl Application for EGUI {
                 edited_file,
                 original_config,
                 edited_config,
+                temp_word_separators,
                 match_files,
                 show_modal,
                 modal_title,
@@ -574,6 +637,13 @@ impl Application for EGUI {
                 ..
             }) => {
                 let unsaved_changes = edited_file.matches != original_file.matches;
+                let word_separators_changed = temp_word_separators.to_owned()
+                    != if edited_config.word_separators.is_some() {
+                        serde_json::to_string(&edited_config.word_separators.clone().unwrap())
+                            .unwrap_or_default()
+                    } else {
+                        format!("{:?}", get_default_word_separators())
+                    };
                 let mut nav_col = column![row![
                     text("Files").size(20),
                     Tooltip::new(
@@ -785,11 +855,10 @@ impl Application for EGUI {
                 } else {
                     "off".to_string()
                 };
-                let word_separators = if edited_config.word_separators.is_some() {
-                    serde_json::to_string(&edited_config.word_separators.clone().unwrap())
-                        .unwrap_or_default()
+                let word_separators = if !temp_word_separators.is_empty() {
+                    temp_word_separators.to_owned()
                 } else {
-                    "[\" \", \",\", \".\", \"?\", \"!\", \"\\r\", \"\\n\", 22]".to_string()
+                    format!("{:?}", get_default_word_separators())
                 };
                 let keyboard_layout = if edited_config.keyboard_layout.is_some() {
                     if edited_config
@@ -826,22 +895,28 @@ impl Application for EGUI {
                         Space::new(Length::Fill, 0),
                         Tooltip::new(
                             button(text(Icon::ArrowCounterclockwise).font(icons::ICON_FONT))
-                                .on_press_maybe(match original_config == edited_config {
-                                    true => None,
-                                    false => Some(Message::UndoConfigPressed),
-                                })
+                                .on_press_maybe(
+                                    match original_config == edited_config
+                                        && !word_separators_changed
+                                    {
+                                        true => None,
+                                        false => Some(Message::UndoConfigPressed),
+                                    }
+                                )
                                 .style(theme::Button::Secondary),
-                            if original_config != edited_config {
+                            if original_config != edited_config || word_separators_changed {
                                 "Undo unsaved changes"
                             } else {
                                 ""
                             },
                             tooltip::Position::Bottom,
                         ),
-                        button("Save").on_press_maybe(match original_config == edited_config {
-                            true => None,
-                            false => Some(Message::SaveConfigPressed),
-                        }),
+                        button("Save").on_press_maybe(
+                            match original_config == edited_config && !word_separators_changed {
+                                true => None,
+                                false => Some(Message::SaveConfigPressed),
+                            }
+                        ),
                     ]
                     .align_items(Alignment::Center)
                     .spacing(10)
@@ -1087,7 +1162,7 @@ impl Application for EGUI {
                     row![
                         text("Word separators").size(20).width(300),
                         text_input(
-                            "[\" \", \",\", \".\", \"?\", \"!\", \"\\r\", \"\\n\", 22]",
+                            &format!("{:?}", get_default_word_separators()),
                             &word_separators
                         )
                         .on_input(Message::WordSeparatorsInput)
@@ -1276,10 +1351,6 @@ impl Application for EGUI {
                     ]
                     .spacing(15)
                     .align_items(Alignment::Center),
-                    // row![text("Known Issues").size(20)].padding([0, 0, 0, 20]),
-                    // column![
-                    //     text("- ").size(18),
-                    // ].padding([0, 0, 0, 20]),
                     row![text("Upcoming Features").size(20)].padding([0, 0, 0, 20]),
                     column![
                         text("- Ability to search YAML files").size(18),
@@ -1511,4 +1582,17 @@ fn open_link(url: &str) {
     if let Err(err) = webbrowser::open(url) {
         eprintln!("Failed to open link: {}", err);
     }
+}
+
+fn get_default_word_separators() -> Vec<String> {
+    vec![
+        " ".to_string(),
+        ",".to_string(),
+        ".".to_string(),
+        "?".to_string(),
+        "!".to_string(),
+        "\r".to_string(),
+        "\n".to_string(),
+        (22u8 as char).to_string(),
+    ]
 }
