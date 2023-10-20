@@ -35,6 +35,13 @@
         </screenshots>
 
         <releases>
+            <release version="23.10" date="2023-10-20">
+                <description>
+                    <p>Fixed multiple bugs that caused crashes</p>
+                    <p>Added Save and Add buttons to the bottom of large files for convenience</p>
+                    <p>App now matches system's light/dark theme</p>
+                </description>
+            </release>
             <release version="2023.09.15" date="2023-09-15">
                 <description>
                     <p>Initial release!</p>
