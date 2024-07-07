@@ -29,11 +29,11 @@ A Rust/Iced based GUI frontend for the espanso text expander.
 
 [dependencies]
 anyhow = "1.0"
-dark-light = "1.0"
+dark-light = "1.1"
 dirs = "5.0"
 home = "0.5"
-iced = "0.10"
-iced_aw = { version = "0.7", default-features = false, features = ["modal", "card", "icons", "number_input"] }
+iced = "0.12"
+iced_aw = { version = "0.9.3", default-features = false, features = ["modal", "card", "icons", "number_input", "context_menu"] }
 once_cell = "1.18"
 regex = "1.9"
 rfd = "0.11"

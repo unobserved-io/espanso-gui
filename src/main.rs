@@ -22,12 +22,15 @@ mod parse_config;
 mod style;
 
 use app::EGUI;
-use iced::{window, Application, Settings};
+use iced::{window, Application, Settings, Size};
 
 pub fn main() -> iced::Result {
     EGUI::run(Settings {
         window: window::Settings {
-            size: (1024, 768),
+            size: Size {
+                height: 768.0,
+                width: 1024.0,
+            },
             ..window::Settings::default()
         },
         ..Settings::default()

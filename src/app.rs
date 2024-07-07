@@ -23,14 +23,16 @@ use crate::{
 
 use dirs::config_dir;
 use home;
-use iced::theme::{self, Theme};
-use iced::widget::{
-    button, column, container, pick_list, row, scrollable, text, text_input, toggler, tooltip,
-    Button, Column, Container, Scrollable, Space, Tooltip,
+use iced::{
+    alignment, font, theme,
+    widget::{
+        button, column, container, pick_list, row, scrollable, text, text_input, toggler, tooltip,
+        Button, Column, Container, Scrollable, Space, Theme, Tooltip,
+    },
+    Alignment, Application, Command, Element, Length, Renderer,
 };
-use iced::{alignment, font, Alignment, Application, Command, Element, Length, Renderer};
-use iced_aw::graphics::icons;
-use iced_aw::{modal, number_input, Card, Icon};
+use iced_aw::core::icons::nerd;
+use iced_aw::{number_input, Card, modal};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rfd::FileDialog;
@@ -196,9 +198,8 @@ impl Application for EGUI {
     fn new(_: Self::Flags) -> (Self, Command<Self::Message>) {
         (
             EGUI::Loading,
-            Command::batch(vec![
-                font::load(iced_aw::graphics::icons::ICON_FONT_BYTES).map(Message::FontLoaded),
-                Command::perform(load(), Message::Loaded),
+            Command::batch(vec![font::load(iced_aw::core::icons::NERD_FONT_BYTES).map(Message::FontLoaded),
+                Command::perform(load(), Message::Loaded)
             ]),
         )
     }
@@ -668,7 +669,7 @@ impl Application for EGUI {
                 .padding(20)
                 .width(175)
                 .align_items(Alignment::Start);
-                let mut yml_files_col: Column<'_, Message, Renderer> =
+                let mut yml_files_col: Column<'_, Message, Theme, Renderer> =
                     Column::new().spacing(8).padding([0, 0, 0, 10]);
                 for yml_file in match_files {
                     yml_files_col =
@@ -719,7 +720,7 @@ impl Application for EGUI {
                 .align_items(Alignment::Start);
 
                 // -- FILE SECTION --
-                let mut all_trigger_replace_rows: Column<'_, Message, Renderer> =
+                let mut all_trigger_replace_rows: Column<'_, Message, Theme, Renderer> =
                     Column::new().spacing(8).padding([0, 0, 0, 10]);
                 if !selected_nav.is_empty()
                     && selected_nav != "eg-Settings"
@@ -739,7 +740,7 @@ impl Application for EGUI {
                                 ""
                             }),
                             Space::new(Length::Fill, 0),
-                            button(text(Icon::Trash).font(icons::ICON_FONT))
+                            button(nerd::icon_to_text(nerd::Nerd::TrashOne))
                                 .on_press(Message::DeleteFilePressed)
                                 .style(theme::Button::Destructive),
                             button("Reset").on_press_maybe(
@@ -763,7 +764,7 @@ impl Application for EGUI {
                         all_trigger_replace_rows = all_trigger_replace_rows.push(
                             Container::new(
                                 row![
-                                    button(text(Icon::Trash).font(icons::ICON_FONT))
+                                    button(nerd::icon_to_text(nerd::Nerd::TrashOne))
                                         .on_press(Message::DeleteRowPressed(i))
                                         .style(theme::Button::Text),
                                     column![
@@ -878,7 +879,7 @@ impl Application for EGUI {
                 let all_config_rows = column!(
                     row![
                         Tooltip::new(
-                            button(text(Icon::Trash).font(icons::ICON_FONT))
+                            button(nerd::icon_to_text(nerd::Nerd::TrashOne))
                                 .on_press(Message::ResetConfigPressed)
                                 .style(theme::Button::Destructive),
                             "Reset all to defaults",
@@ -894,7 +895,7 @@ impl Application for EGUI {
                             .style(theme::Button::Secondary),
                         Space::new(Length::Fill, 0),
                         Tooltip::new(
-                            button(text(Icon::ArrowCounterclockwise).font(icons::ICON_FONT))
+                            button(nerd::icon_to_text(nerd::Nerd::RotateLeft))
                                 .on_press_maybe(
                                     match original_config == edited_config
                                         && !word_separators_changed
@@ -1369,10 +1370,10 @@ impl Application for EGUI {
                 ];
 
                 let underlay = Container::new(main_row)
-                    .width(iced::Length::Fill)
-                    .height(iced::Length::Fill);
+                    .width(Length::Fill)
+                    .height(Length::Fill);
 
-                let overlay: Option<Card<'_, Message, Renderer>> = if show_modal.clone() {
+                let overlay: Option<Card<'_, Message, Theme, Renderer>> = if show_modal.clone() {
                     Some(
                         Card::new(text(modal_title), text(modal_description))
                             .foot(
@@ -1407,9 +1408,9 @@ impl Application for EGUI {
                 };
 
                 modal(underlay, overlay)
-                    .backdrop(Message::CloseModal)
-                    .on_esc(Message::CloseModal)
-                    .into()
+                .backdrop(Message::CloseModal)
+                .on_esc(Message::CloseModal)
+                .into()
             }
         }
     }
