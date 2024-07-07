@@ -924,7 +924,7 @@ checksum = "a0474425d51df81997e2f90a21591180b38eccf27292d755f3e30750225c175b"
 
 [[package]]
 name = "espanso-gui"
-version = "23.10.0"
+version = "24.7.0"
 dependencies = [
  "anyhow",
  "dark-light",
