@@ -1,6 +1,6 @@
 project('espanso-gui',
         'rust',
-        version: '23.10')
+        version: '24.7')
 
 subdir('assets')
 subdir('src')
