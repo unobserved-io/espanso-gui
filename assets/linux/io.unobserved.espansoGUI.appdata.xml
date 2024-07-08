@@ -35,6 +35,11 @@
         </screenshots>
 
         <releases>
+            <release version="24.7" date="2024-07-08">
+                <description>
+                    <p>Fixed issues with wayland on some Linux distros</p>
+                </description>
+            </release>
             <release version="23.10" date="2023-10-20">
                 <description>
                     <p>Fixed multiple bugs that caused crashes</p>
