@@ -26,13 +26,13 @@ use home;
 use iced::{
     alignment, font, theme,
     widget::{
-        button, column, container, pick_list, row, scrollable, text, text_input, toggler, tooltip,
-        Button, Column, Container, Scrollable, Space, Theme, Tooltip,
+        button, column, container, pick_list, row, scrollable, text, text_editor, text_input,
+        toggler, tooltip, Button, Column, Container, Scrollable, Space, Theme, Tooltip,
     },
     Alignment, Application, Command, Element, Length, Renderer,
 };
 use iced_aw::core::icons::nerd;
-use iced_aw::{number_input, Card, modal};
+use iced_aw::{modal, number_input, Card};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rfd::FileDialog;
@@ -59,6 +59,7 @@ pub struct State {
     selected_file: PathBuf,
     original_file: EspansoYaml,
     edited_file: EspansoYaml,
+    edited_file_te: Vec<text_editor::Content>,
     original_config: ParsedConfig,
     edited_config: ParsedConfig,
     temp_word_separators: String,
@@ -93,6 +94,7 @@ impl State {
                 selected_file: PathBuf::new(),
                 original_file: EspansoYaml::default(),
                 edited_file: EspansoYaml::default(),
+                edited_file_te: Vec::new(),
                 match_files: {
                     let default_path = PathBuf::from(egui_data.espanso_dir.clone());
                     get_all_match_file_stems(default_path.join("match"))
@@ -117,6 +119,7 @@ impl State {
                 selected_file: PathBuf::new(),
                 original_file: EspansoYaml::default(),
                 edited_file: EspansoYaml::default(),
+                edited_file_te: Vec::new(),
                 original_config: ParsedConfig::default(),
                 edited_config: ParsedConfig::default(),
                 temp_word_separators: String::new(),
@@ -149,6 +152,7 @@ pub enum Message {
     CloseModal,
     ShowModal(String, String, String),
     Loaded(Result<(), String>),
+    EditReplace(text_editor::Action, usize),
     FontLoaded(Result<(), font::Error>),
     AddFilePressed,
     NewFileInputChanged(String),
@@ -198,8 +202,9 @@ impl Application for EGUI {
     fn new(_: Self::Flags) -> (Self, Command<Self::Message>) {
         (
             EGUI::Loading,
-            Command::batch(vec![font::load(iced_aw::core::icons::NERD_FONT_BYTES).map(Message::FontLoaded),
-                Command::perform(load(), Message::Loaded)
+            Command::batch(vec![
+                font::load(iced_aw::core::icons::NERD_FONT_BYTES).map(Message::FontLoaded),
+                Command::perform(load(), Message::Loaded),
             ]),
         )
     }
@@ -322,6 +327,13 @@ impl Application for EGUI {
                             );
                             state.original_file = read_to_triggers(state.selected_file.clone());
                             state.edited_file = state.original_file.clone();
+                            // copy matches to text_editor
+                            state.edited_file_te.clear();
+                            for a_match in state.edited_file.matches.clone() {
+                                state
+                                    .edited_file_te
+                                    .push(text_editor::Content::with_text(&a_match.replace));
+                            }
                             state.file_name_change = state.selected_nav.clone();
                         }
                     }
@@ -371,6 +383,12 @@ impl Application for EGUI {
                 }
                 Message::ResetPressed => {
                     state.edited_file = state.original_file.clone();
+                    state.edited_file_te.clear();
+                    for a_match in state.edited_file.matches.clone() {
+                        state
+                            .edited_file_te
+                            .push(text_editor::Content::with_text(&a_match.replace));
+                    }
                 }
                 Message::SaveFilePressed => {
                     let mut empty_lines = false;
@@ -584,6 +602,25 @@ impl Application for EGUI {
                 Message::DeleteRowPressed(index) => {
                     state.edited_file.matches.remove(index);
                 }
+                Message::EditReplace(action, i) => match action {
+                    text_editor::Action::Scroll { lines: _ } => {}
+                    action => {
+                        let is_edit = action.is_edit();
+                        state.edited_file_te[i].perform(action);
+
+                        if is_edit {
+                            match state.edited_file.matches.get_mut(i) {
+                                Some(s) => {
+                                    s.replace = state.edited_file_te[i]
+                                        .text()
+                                        .trim_end_matches('\n')
+                                        .to_string()
+                                }
+                                None => eprintln!("No matching string for trigger"),
+                            }
+                        }
+                    }
+                },
                 _ => {}
             },
         }
@@ -624,6 +661,7 @@ impl Application for EGUI {
                 directory_invalid,
                 original_file,
                 edited_file,
+                edited_file_te,
                 original_config,
                 edited_config,
                 temp_word_separators,
@@ -786,18 +824,9 @@ impl Application for EGUI {
                                         .align_items(Alignment::Center),
                                         row![
                                             text("Replace:").size(20).width(90),
-                                            text_input(
-                                                &edited_file.matches[i].replace,
-                                                &edited_file.matches[i].replace
+                                            text_editor(&edited_file_te[i]).on_action(
+                                                move |action| { Message::EditReplace(action, i) }
                                             )
-                                            .on_input(move |new_string| {
-                                                Message::YamlInputChanged(
-                                                    new_string,
-                                                    i,
-                                                    "replace".to_string(),
-                                                )
-                                            })
-                                            .size(20)
                                         ]
                                         .align_items(Alignment::Center)
                                     ]
@@ -1408,9 +1437,9 @@ impl Application for EGUI {
                 };
 
                 modal(underlay, overlay)
-                .backdrop(Message::CloseModal)
-                .on_esc(Message::CloseModal)
-                .into()
+                    .backdrop(Message::CloseModal)
+                    .on_esc(Message::CloseModal)
+                    .into()
             }
         }
     }
