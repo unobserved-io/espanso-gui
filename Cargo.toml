@@ -32,14 +32,13 @@ anyhow = "1.0"
 dark-light = "1.1"
 dirs = "5.0"
 home = "0.5"
-iced = "0.12"
-iced_aw = { version = "0.9.3", default-features = false, features = [
-    "modal",
+iced = "0.13.1"
+iced_aw = { version = "0.11.0", default-features = false, features = [
     "card",
-    "icons",
     "number_input",
     "context_menu",
 ] }
+iced_fonts = { version = "0.1.1", features = ["nerd"] }
 once_cell = "1.19"
 regex = "1.10"
 rfd = "0.15"
