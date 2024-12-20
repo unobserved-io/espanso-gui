@@ -25,6 +25,7 @@ use app::EGUI;
 
 pub fn main() -> iced::Result {
     iced::application(EGUI::title, EGUI::update, EGUI::view)
+        .subscription(EGUI::subscription)
         .theme(EGUI::theme)
         .font(iced_fonts::REQUIRED_FONT_BYTES)
         .font(iced_fonts::NERD_FONT_BYTES)

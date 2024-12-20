@@ -25,12 +25,13 @@ use dirs::config_dir;
 use home;
 use iced::{
     alignment,
+    keyboard::{self, key},
     widget::{
-        button, center, column, container, horizontal_space, mouse_area, opaque, pick_list, row,
-        scrollable, stack, text, text_editor, text_input, toggler, tooltip, Button, Column,
+        self, button, center, column, container, horizontal_space, mouse_area, opaque, pick_list,
+        row, scrollable, stack, text, text_editor, text_input, toggler, tooltip, Button, Column,
         Container, Scrollable, Space, Theme, Tooltip,
     },
-    Alignment, Color, Element, Length, Padding, Renderer, Task,
+    Alignment, Color, Element, Length, Padding, Renderer, Subscription, Task,
 };
 use iced_aw::{number_input, Card};
 use iced_fonts::{nerd::icon_to_char, Nerd, NERD_FONT};
@@ -120,6 +121,7 @@ pub enum Message {
     ResetConfigPressed,
     LaunchURL(String),
     DeleteRowPressed(usize),
+    TabPressed { shift: bool },
 }
 
 impl Default for EGUI {
@@ -199,6 +201,21 @@ impl EGUI {
             dark_light::Mode::Light | dark_light::Mode::Default => Theme::Light,
             dark_light::Mode::Dark => Theme::Dark,
         }
+    }
+
+    pub fn subscription(&self) -> Subscription<Message> {
+        keyboard::on_key_press(|key, modifiers| {
+            let keyboard::Key::Named(key) = key else {
+                return None;
+            };
+
+            match (key, modifiers) {
+                (key::Named::Tab, _) => Some(Message::TabPressed {
+                    shift: modifiers.shift(),
+                }),
+                _ => None,
+            }
+        })
     }
 
     pub fn update(&mut self, message: Message) -> Task<Message> {
@@ -568,6 +585,13 @@ impl EGUI {
                     }
                 }
             },
+            Message::TabPressed { shift } => {
+                if shift {
+                    return widget::focus_previous();
+                } else {
+                    return widget::focus_next();
+                }
+            }
         }
 
         Task::none()
